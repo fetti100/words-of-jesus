@@ -1,253 +1,275 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The Words of Jesus — Every Direct Quote, Nothing Added</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0805" />
+    <title>Ask Jesus — His words, in his own voice</title>
     <meta
       name="description"
-      content="Every direct quote from Jesus in the New Testament — 2,055 verses, ~40,800 words — presented as one continuous read. No commentary, no interpretation. Just his words."
+      content="Ask Jesus of Nazareth any question, and he answers using only the 2,055 verses he actually spoke — no preachers, no interpreters, no filter."
     />
-    <meta property="og:title" content="The Words of Jesus" />
+    <meta property="og:title" content="Ask Jesus" />
     <meta
       property="og:description"
-      content="Every direct quote from Jesus, gathered in one place. Read them straight through, without interpretation."
+      content="His words, in his own voice. Ask him anything — he answers only with what he actually said."
     />
+    <meta property="og:type" content="website" />
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Inter:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
-    <link rel="stylesheet" href="./base.css" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <a href="#quotes-section" class="sr-only">Skip to the quotes</a>
+    <!-- Ambient background — parchment texture in light, deep charcoal in dark -->
+    <div class="ambient" aria-hidden="true">
+      <div class="ambient__grain"></div>
+      <div class="ambient__vignette"></div>
+    </div>
 
-    <!-- Header -->
-    <header class="site-header" id="site-header">
-      <div class="container--wide site-header__inner">
-        <a class="site-logo" href="#top" aria-label="The Words of Jesus — home">
-          <!-- Simple cross/tau mark -->
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
+    <!-- Quiet header (visible on all views except home) -->
+    <header class="chrome" id="chrome">
+      <div class="chrome__inner">
+        <a class="chrome__mark" href="#/" aria-label="Home">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
             <path d="M12 3v18M6 9h12" />
           </svg>
-          <span>The Words of Jesus</span>
         </a>
-        <div class="site-header__actions">
-          <a href="#quotes-section" class="button button--ghost">Read</a>
-          <a href="#ask-section" class="button button--ghost button--accent" data-testid="link-nav-ask">Ask him</a>
-          <button
-            class="icon-button"
-            data-theme-toggle
-            aria-label="Switch to dark mode"
-            title="Toggle theme"
-          ></button>
-        </div>
+        <nav class="chrome__nav" aria-label="Primary">
+          <a href="#/" data-nav="ask">Ask</a>
+          <a href="#/read" data-nav="read">Read</a>
+          <a href="#/books" data-nav="books">Books</a>
+        </nav>
+        <button
+          class="chrome__theme"
+          data-theme-toggle
+          aria-label="Toggle light mode"
+          type="button"
+        ></button>
       </div>
     </header>
 
-    <main id="top">
-      <!-- Hero -->
-      <section class="hero">
-        <div class="container">
-          <div class="hero__ornament">
-            <span class="hero__ornament-mark">Red Letter</span>
-          </div>
-          <h1 class="hero__title">
-            His words<span class="amp">,</span><br />and nothing else.
-          </h1>
-          <p class="hero__subtitle">
-            Every direct quote from Jesus in the New Testament, gathered in one place.
-            Read them straight through, and hear the message before anyone else interprets it for you.
-          </p>
-          <div class="hero__actions">
-            <a href="#quotes-section" class="button button--primary">
-              Begin reading
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </a>
-            <a href="#ask-section" class="button button--ghost" data-testid="link-hero-ask">Ask him a question</a>
-          </div>
-        </div>
-      </section>
-
-      <!-- The theory -->
-      <section class="theory" id="the-theory">
-        <div class="container">
-          <div class="theory__label">The idea</div>
-          <h2 class="theory__title">
-            What message do you get from Jesus, if no one else is doing the talking?
-          </h2>
-          <div class="theory__body">
-            <p>
-              The Bible is mostly not Jesus. It's four gospel writers, a handful of apostles,
-              and centuries of translators and commentators — all working around the words
-              he actually spoke.
-            </p>
-            <p>
-              This page strips all of that away. What's left is only what he said out loud.
-              The red-letter tradition marks these passages in red ink; here they are, in one continuous read,
-              in the order they appear in the New Testament.
-            </p>
-            <p>
-              <em>Read them without a filter. See what emerges.</em>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Stats -->
-      <section class="stats">
-        <div class="container--wide">
-          <div class="stats__grid">
-            <div class="stat">
-              <div class="stat__value" data-count="2055">2,055</div>
-              <div class="stat__label">Verses he speaks</div>
-              <div class="stat__note">across six New Testament books</div>
-            </div>
-            <div class="stat">
-              <div class="stat__value" data-count="40802">40,802</div>
-              <div class="stat__label">Words in total</div>
-              <div class="stat__note">roughly a novella</div>
-            </div>
-            <div class="stat">
-              <div class="stat__value">≈ 3 hrs</div>
-              <div class="stat__label">To read aloud</div>
-              <div class="stat__note">in one sitting</div>
-            </div>
-            <div class="stat">
-              <div class="stat__value">0</div>
-              <div class="stat__label">Notes, footnotes, sermons</div>
-              <div class="stat__note">just what he said</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Ask him -->
-      <section class="ask" id="ask-section">
-        <div class="container">
-          <div class="ask__label">Ask him</div>
-          <h2 class="ask__title">
-            Ask a question. Get his direct words back.
-          </h2>
-          <p class="ask__lede">
-            An AI librarian searches all 2,055 of his verses and answers using only what he
-            actually said. It never invents quotes. It leads with a plain yes or no on whether
-            he addressed your question at all &mdash; and if he didn&rsquo;t, it tells you so.
-          </p>
-
-          <form class="ask-form" id="ask-form" autocomplete="off">
-            <div class="ask-form__input-wrap">
-              <textarea
-                id="ask-input"
-                class="ask-form__input"
-                placeholder="e.g. Did Jesus talk about wealth? What did he say about immigration? Did he ever mention war?"
-                rows="2"
-                maxlength="500"
-                data-testid="input-ask-question"
-              ></textarea>
-              <button
-                type="button"
-                class="ask-form__mic"
-                id="ask-mic"
-                aria-label="Ask by voice"
-                title="Ask by voice"
-                data-testid="button-ask-voice"
-                hidden
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-                  <rect x="9" y="3" width="6" height="11" rx="3"/>
-                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
-                </svg>
-              </button>
-            </div>
-            <div class="ask-form__row">
-              <div class="ask-form__suggestions" id="ask-suggestions">
-                <span class="ask-form__suggestions-label">Try:</span>
-                <button type="button" class="ask-chip" data-q="Did Jesus talk about wealth?">wealth</button>
-                <button type="button" class="ask-chip" data-q="What did Jesus say about immigration or foreigners?">immigration</button>
-                <button type="button" class="ask-chip" data-q="What did Jesus say about divorce?">divorce</button>
-                <button type="button" class="ask-chip" data-q="Did Jesus ever address homosexuality?">homosexuality</button>
-                <button type="button" class="ask-chip" data-q="What were Jesus's political views?">politics</button>
+    <main id="app">
+      <!-- View 1: Home — the encounter -->
+      <section class="view view--home" data-view="home">
+        <div class="home">
+          <div class="home__center">
+            <div class="home__frame">
+              <div class="home__eyebrow">
+                <span class="home__cross" aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25"><path d="M12 3v18M6 9h12"/></svg>
+                </span>
+                <span>2,055 verses spoken</span>
               </div>
-              <button type="submit" class="button button--primary ask-form__submit" id="ask-submit" data-testid="button-ask-submit">
-                Ask
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-              </button>
+
+              <h1 class="home__title">
+                I am Jesus.
+              </h1>
+
+              <p class="home__lede">
+                My words have been taken out of context for two thousand years — by
+                preachers, Pharisees, and people who never met me. This is every
+                word I actually spoke, and nothing else.
+              </p>
+
+              <p class="home__invite">
+                Ask me anything.
+              </p>
+
+              <form class="ask" id="ask-form" autocomplete="off">
+                <div class="ask__field">
+                  <textarea
+                    id="ask-input"
+                    class="ask__input"
+                    placeholder="What did you say about…"
+                    rows="1"
+                    maxlength="500"
+                    autocapitalize="sentences"
+                    spellcheck="true"
+                    data-testid="input-ask-question"
+                  ></textarea>
+                  <div class="ask__controls">
+                    <button
+                      type="button"
+                      class="ask__mic"
+                      id="ask-mic"
+                      aria-label="Ask by voice"
+                      hidden
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="9" y="3" width="6" height="11" rx="3"/>
+                        <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+                      </svg>
+                    </button>
+                    <button
+                      type="submit"
+                      class="ask__submit"
+                      id="ask-submit"
+                      aria-label="Ask"
+                      data-testid="button-ask-submit"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M4 12h15M13 6l7 6-7 6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <div class="home__examples">
+                <div class="home__examples-label">Others have asked</div>
+                <div class="home__examples-list" id="home-examples">
+                  <button type="button" class="home__example" data-q="What did you say about money?">
+                    <span>What did you say about money?</span>
+                  </button>
+                  <button type="button" class="home__example" data-q="Do you love me even when I've hurt people?">
+                    <span>Do you love me even when I've hurt people?</span>
+                  </button>
+                  <button type="button" class="home__example" data-q="Did you talk about the end of the world?">
+                    <span>Did you talk about the end of the world?</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="home__doors">
+                <a href="#/read" class="home__door">
+                  <span class="home__door-label">Read everything I said</span>
+                  <span class="home__door-arrow" aria-hidden="true">→</span>
+                </a>
+                <a href="#/books" class="home__door">
+                  <span class="home__door-label">Browse by book</span>
+                  <span class="home__door-arrow" aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 2: Ask conversation -->
+      <section class="view view--conversation" data-view="conversation" hidden>
+        <div class="conv" id="conv">
+          <a href="#/" class="conv__back" data-testid="link-back-home">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            <span>Ask something else</span>
+          </a>
+          <div class="conv__thread" id="conv-thread" aria-live="polite"></div>
+
+          <form class="ask ask--inline" id="conv-form" autocomplete="off">
+            <div class="ask__field">
+              <textarea
+                id="conv-input"
+                class="ask__input"
+                placeholder="Ask another question…"
+                rows="1"
+                maxlength="500"
+                autocapitalize="sentences"
+                data-testid="input-followup-question"
+              ></textarea>
+              <div class="ask__controls">
+                <button type="submit" class="ask__submit" aria-label="Ask">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 12h15M13 6l7 6-7 6"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </form>
-
-          <div class="ask-thread" id="ask-thread" aria-live="polite"></div>
         </div>
       </section>
 
-      <!-- Filters -->
-      <section class="filters" id="quotes-section">
-        <div class="container--wide filters__inner">
-          <label class="search">
-            <span class="sr-only">Search the words of Jesus</span>
-            <svg class="search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="11" cy="11" r="7"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              type="search"
-              id="search-input"
-              placeholder="Search his words…"
-              autocomplete="off"
-              spellcheck="false"
-            />
-          </label>
-          <div class="chips" id="chips" role="tablist" aria-label="Filter quotes by theme"></div>
+      <!-- View 3: Read (canonical) -->
+      <section class="view view--read" data-view="read" hidden>
+        <div class="read">
+          <header class="read__header">
+            <div class="read__eyebrow">Read</div>
+            <h2 class="read__title">Everything I said, in the order it was written.</h2>
+            <p class="read__lede">
+              2,055 verses across six books. No commentary. No footnotes. No sermons.
+              Just what I said, in canonical order.
+            </p>
+            <div class="read__toolbar">
+              <label class="read__search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input
+                  type="search"
+                  id="read-search"
+                  placeholder="Search my words…"
+                  autocomplete="off"
+                  spellcheck="false"
+                  data-testid="input-read-search"
+                />
+              </label>
+              <div class="read__jump" id="read-jump" aria-label="Jump to a book">
+                <button type="button" class="read__jump-toggle" id="read-jump-toggle">
+                  <span id="read-jump-label">Jump to book</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div class="read__jump-menu" id="read-jump-menu" hidden></div>
+              </div>
+            </div>
+          </header>
+
+          <div class="read__body">
+            <div id="read-list"></div>
+            <div class="read__load" id="read-load" hidden>…</div>
+            <div class="read__empty" id="read-empty" hidden>
+              <div class="read__empty-title">No matches.</div>
+              <div class="read__empty-body">Try a different word, or clear the search.</div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- Optional category description -->
-      <section class="category-note" id="category-note" hidden>
-        <div class="container">
-          <div class="category-note__label" id="category-note-label"></div>
-          <p class="category-note__text" id="category-note-text"></p>
+      <!-- View 4: Books -->
+      <section class="view view--books" data-view="books" hidden>
+        <div class="books">
+          <header class="books__header">
+            <div class="books__eyebrow">Books</div>
+            <h2 class="books__title">Six books contain my recorded words.</h2>
+            <p class="books__lede">
+              Choose one to read only what I said in that book.
+            </p>
+          </header>
+          <div class="books__grid" id="books-grid"></div>
         </div>
       </section>
 
-      <!-- Quotes list -->
-      <section class="quotes">
-        <div class="container">
-          <div class="quotes__meta" id="quotes-meta"></div>
-          <div id="quotes-list"></div>
-          <div class="load-more" id="load-more" hidden>Loading more…</div>
-          <div class="empty-state" id="empty-state" hidden>
-            <div class="empty-state__title">No matches</div>
-            <div class="empty-state__body">Try a different word or clear the search.</div>
+      <!-- View 5: Single book -->
+      <section class="view view--book" data-view="book" hidden>
+        <div class="read">
+          <header class="read__header">
+            <a href="#/books" class="read__back">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+              <span>All books</span>
+            </a>
+            <div class="read__eyebrow" id="book-eyebrow"></div>
+            <h2 class="read__title" id="book-title"></h2>
+            <p class="read__lede" id="book-lede"></p>
+          </header>
+
+          <div class="read__body">
+            <div id="book-list"></div>
           </div>
         </div>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="container site-footer__inner">
-        <p class="site-footer__note">
-          Text is from the <strong>World English Bible</strong> — a modern-English translation
-          in the public domain — restricted to passages tagged as the direct words of Jesus
-          (the &ldquo;red letters&rdquo;) across Matthew, Mark, Luke, John, Acts, and Revelation.
-          Verse text sourced from
+    <footer class="footer">
+      <div class="footer__inner">
+        <p class="footer__note">
+          Text is from the <strong>World English Bible</strong>, a modern-English
+          public-domain translation. Restricted to passages tagged as the direct
+          words of Jesus (the &ldquo;red letters&rdquo;) across Matthew, Mark, Luke,
+          John, Acts, and Revelation. Verse text from
           <a href="https://ebible.org/web/" target="_blank" rel="noopener noreferrer">eBible.org</a>.
-          No commentary, chapter headings, footnotes, or interpretive notes have been added.
         </p>
-        <p class="site-footer__meta">A private reading project · Share freely</p>
+        <p class="footer__meta">A private reading project &middot; Share freely</p>
       </div>
     </footer>
 
