@@ -4,7 +4,8 @@
   "description": "The direct words of Jesus, with an AI assistant grounded strictly in his verbatim quotes.",
   "private": true,
   "scripts": {
-    "embed": "node scripts/generate-embeddings.js",
+    "embed": "node scripts/generate-embeddings.js && node scripts/pack-embeddings.js",
+    "pack": "node scripts/pack-embeddings.js",
     "dev": "vercel dev"
   },
   "dependencies": {
@@ -13,5 +14,6 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "type": "module"
 }

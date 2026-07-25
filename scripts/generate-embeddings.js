@@ -14,17 +14,35 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import OpenAI from "openai";
 
+// When running in the Perplexity sandbox with api_credentials=['custom-cred:api.openai.com'],
+// the auth token is injected by an HTTPS_PROXY. Node's built-in fetch (undici) does not
+// respect HTTPS_PROXY unless we configure a global dispatcher. This block is a no-op
+// outside the sandbox (no HTTPS_PROXY set).
+if (process.env.HTTPS_PROXY) {
+  const { ProxyAgent, setGlobalDispatcher } = await import("undici");
+  setGlobalDispatcher(new ProxyAgent(process.env.HTTPS_PROXY));
+}
+
 const QUOTES_PATH = path.join(process.cwd(), "public", "quotes.json");
 const OUTPUT_PATH = path.join(process.cwd(), "data", "embeddings.json");
 const MODEL = "text-embedding-3-small";
 const BATCH_SIZE = 100; // OpenAI accepts up to 2048 inputs per request; 100 is safe
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("ERROR: OPENAI_API_KEY not set. Copy .env.example to .env and add your key.");
-  process.exit(1);
-}
+// Real key when running locally with .env, or a placeholder when the proxy is injecting auth.
+// When the proxy is active, we override fetch to strip the Authorization header the SDK sets,
+// so the proxy's injected auth is used instead.
+const usingProxy = !!process.env.HTTPS_PROXY && !process.env.OPENAI_API_KEY;
+const apiKey = process.env.OPENAI_API_KEY || "proxied";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const customFetch = usingProxy
+  ? (url, init = {}) => {
+      const headers = new Headers(init.headers || {});
+      headers.delete("authorization");
+      return fetch(url, { ...init, headers });
+    }
+  : undefined;
+
+const openai = new OpenAI({ apiKey, fetch: customFetch });
 
 async function main() {
   console.log(`Reading ${QUOTES_PATH}...`);
