@@ -342,3 +342,263 @@
     });
   }
 })();
+
+
+// ================================================================
+// ASK HIM — AI librarian
+// ================================================================
+(function askFeature() {
+  const form = document.getElementById('ask-form');
+  if (!form) return;
+
+  const input = document.getElementById('ask-input');
+  const submit = document.getElementById('ask-submit');
+  const mic = document.getElementById('ask-mic');
+  const thread = document.getElementById('ask-thread');
+  const chips = document.querySelectorAll('.ask-chip');
+
+  // --- Suggestion chips fill the input and submit ---
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const q = chip.getAttribute('data-q');
+      if (!q) return;
+      input.value = q;
+      input.focus();
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+    });
+  });
+
+  // --- Auto-resize textarea ---
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+  });
+
+  // --- Cmd/Ctrl+Enter submits ---
+  input.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+  });
+
+  // --- Voice input via Web Speech API (Safari + Chrome iOS) ---
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    mic.hidden = false;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    let listening = false;
+    let baseText = '';
+
+    mic.addEventListener('click', () => {
+      if (listening) {
+        recognition.stop();
+        return;
+      }
+      baseText = input.value.trim();
+      recognition.start();
+    });
+
+    recognition.addEventListener('start', () => {
+      listening = true;
+      mic.setAttribute('data-listening', 'true');
+      mic.setAttribute('aria-label', 'Stop listening');
+    });
+
+    recognition.addEventListener('result', (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      input.value = (baseText ? baseText + ' ' : '') + transcript.trim();
+      input.dispatchEvent(new Event('input'));
+    });
+
+    recognition.addEventListener('end', () => {
+      listening = false;
+      mic.removeAttribute('data-listening');
+      mic.setAttribute('aria-label', 'Ask by voice');
+    });
+
+    recognition.addEventListener('error', () => {
+      listening = false;
+      mic.removeAttribute('data-listening');
+    });
+  }
+
+  // --- Minimal markdown renderer: **bold**, blockquotes, paragraphs ---
+  // We intentionally keep this small; Claude's output is well-behaved with our system prompt.
+  function escapeHtml(s) {
+    return s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function renderMarkdown(text) {
+    const escaped = escapeHtml(text);
+    const lines = escaped.split('\n');
+    const out = [];
+    let inBlockquote = false;
+    let paragraph = [];
+
+    const flushParagraph = () => {
+      if (paragraph.length) {
+        let p = paragraph.join(' ').trim();
+        p = p.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        p = p.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        p = p.replace(/`([^`]+)`/g, '<code>$1</code>');
+        out.push(`<p>${p}</p>`);
+        paragraph = [];
+      }
+    };
+
+    lines.forEach((line) => {
+      if (line.startsWith('&gt; ')) {
+        flushParagraph();
+        if (!inBlockquote) {
+          out.push('<blockquote>');
+          inBlockquote = true;
+        }
+        let quoted = line.slice(5);
+        quoted = quoted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        out.push(`<p>${quoted}</p>`);
+      } else if (line.trim() === '') {
+        flushParagraph();
+        if (inBlockquote) {
+          out.push('</blockquote>');
+          inBlockquote = false;
+        }
+      } else {
+        if (inBlockquote) {
+          out.push('</blockquote>');
+          inBlockquote = false;
+        }
+        paragraph.push(line);
+      }
+    });
+    flushParagraph();
+    if (inBlockquote) out.push('</blockquote>');
+    return out.join('\n');
+  }
+
+  // --- Ask endpoint URL: relative in production (Vercel), same-origin in dev ---
+  const ASK_URL = '/api/ask';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+
+    // Build a new turn card
+    const turn = document.createElement('article');
+    turn.className = 'ask-turn';
+    turn.innerHTML = `
+      <p class="ask-turn__q">${escapeHtml(question)}</p>
+      <div class="ask-turn__answer">
+        <span class="ask-turn__loading">Searching his words</span>
+      </div>
+    `;
+    thread.prepend(turn);
+    const answerEl = turn.querySelector('.ask-turn__answer');
+
+    // Reset input
+    input.value = '';
+    input.style.height = 'auto';
+    submit.disabled = true;
+
+    // Scroll the new turn into view smoothly
+    setTimeout(() => {
+      turn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
+    let accumulated = '';
+
+    try {
+      const response = await fetch(ASK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        let msg = `Server error (${response.status})`;
+        try {
+          const j = JSON.parse(body);
+          if (j.error) msg = j.error;
+        } catch (_) {}
+        throw new Error(msg);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('text/event-stream')) {
+        // Not streaming — parse JSON error
+        const data = await response.json();
+        throw new Error(data.error || 'Unexpected response');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      // Replace the loading indicator with the streaming container
+      answerEl.innerHTML = '<div class="ask-turn__stream"></div><span class="ask-turn__cursor"></span>';
+      const streamEl = answerEl.querySelector('.ask-turn__stream');
+      const cursorEl = answerEl.querySelector('.ask-turn__cursor');
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+
+          const lines = rawEvent.split('\n');
+          let eventName = 'message';
+          let dataLine = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) eventName = line.slice(7).trim();
+            else if (line.startsWith('data: ')) dataLine = line.slice(6);
+          }
+          if (!dataLine) continue;
+
+          if (eventName === 'token') {
+            try {
+              const chunk = JSON.parse(dataLine);
+              accumulated += chunk;
+              streamEl.innerHTML = renderMarkdown(accumulated);
+            } catch (_) {}
+          } else if (eventName === 'verses') {
+            // reserved: could show retrieved refs in a footer, but keep clean for now
+          } else if (eventName === 'error') {
+            try {
+              const err = JSON.parse(dataLine);
+              throw new Error(err.message || 'stream error');
+            } catch (parseErr) {
+              throw parseErr;
+            }
+          } else if (eventName === 'done') {
+            cursorEl.remove();
+          }
+        }
+      }
+
+      if (cursorEl.isConnected) cursorEl.remove();
+      // Final render pass
+      streamEl.innerHTML = renderMarkdown(accumulated);
+    } catch (err) {
+      answerEl.innerHTML = `<div class="ask-turn__error">${escapeHtml(err.message || 'Something went wrong')}</div>`;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+})();

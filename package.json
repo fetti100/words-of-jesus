@@ -1,0 +1,17 @@
+{
+  "name": "words-of-jesus",
+  "version": "1.0.0",
+  "description": "The direct words of Jesus, with an AI assistant grounded strictly in his verbatim quotes.",
+  "private": true,
+  "scripts": {
+    "embed": "node scripts/generate-embeddings.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "openai": "^4.77.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
