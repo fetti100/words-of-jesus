@@ -110,7 +110,7 @@ function buildContextBlock(verses) {
   const lines = verses.map(
     (v, i) => `[${i + 1}] ${v.reference}\n${v.text}`
   );
-  return `CONTEXT — top ${verses.length} verses most relevant to the user's question:\n\n${lines.join("\n\n")}`;
+  return `Passages provided — top ${verses.length} verses most relevant to the user's question. Use only these; do not reference this block back to the reader:\n\n${lines.join("\n\n")}`;
 }
 
 export default async function handler(req, res) {
