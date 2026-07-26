@@ -520,7 +520,9 @@
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     // Italic
     s = s.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
-    // Verse ref pattern: (Matthew 5:3) or (Matt. 5:3)
+    // Red-letter tradition: any quoted phrase (curly or straight quotes) is Jesus's words.
+    // Match "...", “...”, or mixed. Non-greedy, at least one char, no line break inside.
+    s = s.replace(/(&quot;|“)([^”“\n]+?)(&quot;|”)/g, '<span class="red-letter">$1$2$3</span>');
     return s;
   }
 
@@ -533,6 +535,130 @@
       .replace(/'/g, '&#039;');
   }
   function escapeAttr(s) { return escapeHtml(s); }
+
+  // ============================== Voice input =============================
+  // Uses the Web Speech API. Works on iOS Safari 14.5+, macOS Safari,
+  // and Chromium. Must call recognition.start() synchronously inside the
+  // click handler — iOS silently blocks it otherwise.
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const voiceSupported = !!SpeechRecognition;
+
+  const askMicBtn = $('#ask-mic');
+  const convMicBtn = $('#conv-mic');
+
+  // Reveal mic buttons only if the browser supports voice input
+  if (voiceSupported) {
+    askMicBtn?.removeAttribute('hidden');
+    convMicBtn?.removeAttribute('hidden');
+  }
+
+  let activeRecognition = null;
+  let activeMicBtn = null;
+  let activeInputEl = null;
+  let recognitionBaseText = '';
+
+  function stopRecognition() {
+    if (activeRecognition) {
+      try { activeRecognition.stop(); } catch (_) {}
+    }
+  }
+
+  function attachMic(micBtn, inputEl) {
+    if (!micBtn || !inputEl || !voiceSupported) return;
+
+    micBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      // Toggle off if this mic is already listening
+      if (activeMicBtn === micBtn && activeRecognition) {
+        stopRecognition();
+        return;
+      }
+      // Stop any other mic that might be running
+      if (activeRecognition) stopRecognition();
+
+      // Construct fresh recognition each time (iOS is finicky about reuse)
+      const rec = new SpeechRecognition();
+      rec.lang = navigator.language || 'en-US';
+      rec.interimResults = true;
+      rec.continuous = false;   // iOS ignores true; keep false for consistency
+      rec.maxAlternatives = 1;
+
+      recognitionBaseText = inputEl.value.trim();
+      activeRecognition = rec;
+      activeMicBtn = micBtn;
+      activeInputEl = inputEl;
+
+      rec.onstart = () => {
+        micBtn.classList.add('is-listening');
+        micBtn.setAttribute('aria-label', 'Stop listening');
+      };
+
+      rec.onresult = (event) => {
+        let interim = '';
+        let finalPiece = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript;
+          if (result.isFinal) finalPiece += transcript;
+          else interim += transcript;
+        }
+        if (finalPiece) {
+          recognitionBaseText = (recognitionBaseText
+            ? recognitionBaseText + ' '
+            : '') + finalPiece.trim();
+        }
+        const composed = interim
+          ? (recognitionBaseText ? recognitionBaseText + ' ' + interim : interim)
+          : recognitionBaseText;
+        inputEl.value = composed.trim();
+        autoGrow(inputEl);
+      };
+
+      rec.onerror = (event) => {
+        console.warn('Voice input error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          alert('Microphone permission was denied. To use voice input, allow microphone access in your browser settings.');
+        } else if (event.error === 'no-speech') {
+          // Silent — user just didn't speak; no need to alarm them
+        } else if (event.error === 'audio-capture') {
+          alert('No microphone was found. Check that your device has a microphone available.');
+        }
+      };
+
+      rec.onend = () => {
+        micBtn.classList.remove('is-listening');
+        micBtn.setAttribute('aria-label', 'Ask by voice');
+        if (activeRecognition === rec) {
+          activeRecognition = null;
+          activeMicBtn = null;
+          activeInputEl = null;
+        }
+        // Keep focus on the field so the user can either submit or keep typing
+        try { inputEl.focus({ preventScroll: true }); } catch (_) {}
+      };
+
+      // CRITICAL: start synchronously inside the click handler for iOS Safari
+      try {
+        rec.start();
+      } catch (err) {
+        console.warn('Could not start voice recognition:', err);
+        micBtn.classList.remove('is-listening');
+        activeRecognition = null;
+        activeMicBtn = null;
+        activeInputEl = null;
+      }
+    });
+  }
+
+  attachMic(askMicBtn, askInput);
+  attachMic(convMicBtn, convInput);
+
+  // Stop listening if the user submits or navigates away
+  askForm?.addEventListener('submit', stopRecognition);
+  convForm?.addEventListener('submit', stopRecognition);
+  window.addEventListener('hashchange', stopRecognition);
 
   // ========================= Save chat + History ==========================
 

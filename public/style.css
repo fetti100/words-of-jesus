@@ -23,6 +23,7 @@
   --red: #d97757;                    /* THE red letter — warmer than coral */
   --red-deep: #b25a3c;               /* pressed / hovered */
   --red-glow: rgba(217, 119, 87, 0.16);
+  --red-letter: #ea8a6d;              /* brighter for body copy on dark bg */
 
   --border: rgba(237, 228, 211, 0.08);
   --border-strong: rgba(237, 228, 211, 0.14);
@@ -63,6 +64,7 @@
   --red: #a83d1f;                    /* oxblood — like actual red letters */
   --red-deep: #7c2c14;
   --red-glow: rgba(168, 61, 31, 0.10);
+  --red-letter: #a83d1f;              /* strong oxblood on parchment */
 
   --border: rgba(42, 35, 26, 0.10);
   --border-strong: rgba(42, 35, 26, 0.18);
@@ -483,16 +485,28 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
   letter-spacing: 0.04em;
   text-decoration: none;
   cursor: pointer;
-  transition: color 180ms var(--ease), border-color 180ms var(--ease), background 180ms var(--ease);
+  transition: color 180ms var(--ease), border-color 180ms var(--ease), background 180ms var(--ease), box-shadow 180ms var(--ease);
 }
-.conv__action-link:hover,
-.conv__action-btn:hover {
+.conv__action-link:hover {
   color: var(--ink);
   border-color: var(--border-strong);
   background: color-mix(in oklab, var(--ink) 3%, transparent);
 }
+
+/* Save button — always red-outlined so it's easy to find */
+.conv__action-btn {
+  border-color: var(--red);
+  color: var(--red-letter);
+  background: color-mix(in oklab, var(--red) 4%, transparent);
+}
+.conv__action-btn:hover {
+  color: var(--red-letter);
+  border-color: var(--red);
+  background: var(--red-glow);
+  box-shadow: 0 0 0 3px var(--red-glow);
+}
 .conv__action-btn.is-saved {
-  color: var(--red);
+  color: var(--red-letter);
   border-color: var(--red);
   background: var(--red-glow);
 }
@@ -595,7 +609,7 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
 .exchange__answer p { margin: 0 0 1.1rem; }
 .exchange__answer p:last-child { margin-bottom: 0; }
 
-/* Verse blockquotes */
+/* Verse blockquotes — Jesus's words, in red-letter tradition */
 .exchange__answer blockquote {
   margin: 1.5rem 0;
   padding: 0.25rem 0 0.25rem 1.5rem;
@@ -605,7 +619,7 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
   font-weight: 400;
   font-style: normal;
   line-height: 1.4;
-  color: var(--ink);
+  color: var(--red-letter);
   letter-spacing: -0.005em;
 }
 .exchange__answer blockquote p { margin: 0; }
@@ -626,6 +640,9 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
 .exchange__answer strong { color: var(--ink); font-weight: 500; }
 .exchange__answer em:not(.ref) { color: var(--ink-muted); font-style: italic; }
 .exchange__answer a { color: var(--red); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+/* Any inline .red-letter span (e.g. Jesus quoting himself mid-paragraph) */
+.exchange__answer .red-letter { color: var(--red-letter); }
 
 /* Loading indicator — three subtle dots */
 .exchange__pending {
