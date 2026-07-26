@@ -241,10 +241,10 @@
         <div class="read">
           <header class="read__header">
             <div class="read__eyebrow">Read</div>
-            <h2 class="read__title">Everything I said, in the order it was written.</h2>
+            <h2 class="read__title">Everything Jesus said, in the order it was written.</h2>
             <p class="read__lede">
-              2,055 verses across six books. No commentary. No footnotes. No sermons.
-              Just what I said, in canonical order.
+              2,055 verses across six books. His words in red, context in ink.
+              No commentary. No footnotes.
             </p>
             <div class="read__toolbar">
               <label class="read__search">
@@ -252,7 +252,7 @@
                 <input
                   type="search"
                   id="read-search"
-                  placeholder="Search my words…"
+                  placeholder="Search his words…"
                   autocomplete="off"
                   spellcheck="false"
                   data-testid="input-read-search"
@@ -284,9 +284,9 @@
         <div class="books">
           <header class="books__header">
             <div class="books__eyebrow">Books</div>
-            <h2 class="books__title">Six books contain my recorded words.</h2>
+            <h2 class="books__title">Six books contain Jesus's recorded words.</h2>
             <p class="books__lede">
-              Choose one to read only what I said in that book.
+              Choose one to read the full text. His words are shown in red.
             </p>
           </header>
           <div class="books__grid" id="books-grid"></div>
@@ -335,8 +335,22 @@
           </header>
 
           <div class="read__body">
-            <div id="book-list"></div>
+            <div id="book-list">
+              <p class="book-loading" id="book-loading" hidden>Loading the chapter…</p>
+            </div>
           </div>
+
+          <!-- Floating pill — appears when the user arrived from a conversation. -->
+          <a
+            class="return-pill"
+            id="return-pill"
+            href="#/"
+            hidden
+            data-testid="link-return-to-chat"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            <span>Back to conversation</span>
+          </a>
         </div>
       </section>
     </main>

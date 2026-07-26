@@ -1020,6 +1020,78 @@ a.cite:hover,
   margin: 0;
 }
 
+/* Full-chapter reading (new: WEB Bible embed) */
+.chapter {
+  margin: 0.5rem 0 2rem;
+}
+.passage {
+  font-family: var(--display);
+  font-size: var(--step-0);
+  line-height: 1.7;
+  color: var(--ink);
+  margin: 0.55rem 0;
+  padding: 0.2rem 0.2rem 0.2rem 0;
+  border-radius: 4px;
+  text-indent: 0;
+}
+.passage__num {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-right: 0.35em;
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  font-weight: 500;
+  color: var(--ink-whisper);
+  vertical-align: 0.4em;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.passage__text { display: inline; }
+.passage--jesus .passage__text {
+  color: var(--red-letter);
+  font-weight: 500;
+}
+.passage--jesus .passage__num { color: var(--red); }
+
+/* Deep-linked verse highlight also works for .passage rows */
+.passage.verse--highlight {
+  animation: verse-flash 2.4s var(--ease);
+}
+
+.book-loading {
+  color: var(--ink-quiet);
+  font-family: var(--ui);
+  font-size: var(--step--1);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+/* Floating 'Back to conversation' pill — sits above safe-area on iOS */
+.return-pill {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.18);
+  z-index: 40;
+  transition: transform 200ms var(--ease), background 200ms var(--ease);
+}
+.return-pill:hover { background: color-mix(in oklab, var(--ink) 6%, var(--bg)); transform: translateX(-50%) translateY(-1px); }
+.return-pill svg { color: var(--red); }
+
 /* Chapter divider */
 .chapter-divider {
   padding: 2.5rem 0 1rem;

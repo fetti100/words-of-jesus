@@ -1,0 +1,41 @@
+{
+  "translation": "WEB",
+  "books": [
+    {
+      "slug": "matthew",
+      "name": "Matthew",
+      "chapters": 28,
+      "verses": 1071
+    },
+    {
+      "slug": "mark",
+      "name": "Mark",
+      "chapters": 16,
+      "verses": 678
+    },
+    {
+      "slug": "luke",
+      "name": "Luke",
+      "chapters": 24,
+      "verses": 1151
+    },
+    {
+      "slug": "john",
+      "name": "John",
+      "chapters": 21,
+      "verses": 879
+    },
+    {
+      "slug": "acts",
+      "name": "Acts",
+      "chapters": 28,
+      "verses": 1007
+    },
+    {
+      "slug": "revelation",
+      "name": "Revelation",
+      "chapters": 22,
+      "verses": 404
+    }
+  ]
+}

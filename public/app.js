@@ -15,13 +15,18 @@
     byBook: {},               // { Matthew: [verses], Mark: [...] }
     bookOrder: ['Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Revelation'],
     bookMeta: {
-      Matthew:    { number: 'i',   lede: 'The kingdom sermons, the parables, the great commission. My longest recorded voice.' },
-      Mark:       { number: 'ii',  lede: 'The urgent, action-driven account. My words in Mark are shorter, sharper, more direct.' },
-      Luke:       { number: 'iii', lede: 'The gospel of outsiders — Samaritans, sinners, the poor. Where I say the most about who I came for.' },
-      John:       { number: 'iv',  lede: 'The intimate discourses. Long, layered conversations about who I am and why I came.' },
-      Acts:       { number: 'v',   lede: 'A few words after the resurrection — final instructions to my followers, and a voice from heaven.' },
-      Revelation: { number: 'vi',  lede: 'Letters to seven churches and the closing vision. My voice as the risen Christ, speaking to the future.' },
+      Matthew:    { number: 'i',   lede: 'The kingdom sermons, the parables, the great commission. His longest recorded voice.' },
+      Mark:       { number: 'ii',  lede: 'The urgent, action-driven account. His words in Mark are shorter, sharper, more direct.' },
+      Luke:       { number: 'iii', lede: 'The gospel of outsiders — Samaritans, sinners, the poor. Where he says the most about who he came for.' },
+      John:       { number: 'iv',  lede: 'The intimate discourses. Long, layered conversations about who he is and why he came.' },
+      Acts:       { number: 'v',   lede: 'A few words after the resurrection — final instructions to his followers, and a voice from heaven.' },
+      Revelation: { number: 'vi',  lede: 'Letters to seven churches and the closing vision. His voice as the risen Christ, speaking to the future.' },
     },
+    // Cache of loaded WEB chapters, keyed by book slug.
+    bibleCache: {},           // { matthew: { chapters: { "1": [{v,t}], ... } }, ... }
+    bibleLoading: {},         // in-flight fetch promises, keyed by slug
+    // Where to return when the reader taps 'Back to conversation' in the book view.
+    returnRef: null,          // { hash: '#/ask/<id>' | '#/ask' }
     view: 'home',
     theme: 'dark',
     // Conversation state (persisted)
@@ -209,6 +214,7 @@
     const r = parseRoute();
     switch (r.name) {
       case 'home':
+        state.returnRef = null;
         showView('home');
         renderHomeExamples();
         refreshHomeHistoryDoor();
@@ -231,14 +237,17 @@
         refreshSaveButton();
         break;
       case 'history':
+        state.returnRef = null;
         showView('history');
         renderHistory();
         break;
       case 'read':
+        state.returnRef = null;
         showView('read');
         renderRead();
         break;
       case 'books':
+        state.returnRef = null;
         showView('books');
         renderBooks();
         break;
@@ -251,6 +260,23 @@
   }
 
   window.addEventListener('hashchange', route);
+
+  // Track the origin when the user taps a citation link inside a conversation.
+  // If we jumped into the book view from within a chat, remember where to
+  // return so we can show a 'Back to conversation' pill.
+  document.addEventListener(
+    'click',
+    (ev) => {
+      const link = ev.target.closest && ev.target.closest('a.cite');
+      if (!link) return;
+      const from = window.location.hash;
+      // Only capture if we're jumping FROM a chat (or the home ask view).
+      if (from.startsWith('#/ask') || from === '' || from === '#/' || from === '#') {
+        state.returnRef = { hash: from || '#/' };
+      }
+    },
+    true,
+  );
 
   // ============================== Data =================================
 
@@ -1099,39 +1125,90 @@
 
   // ============================ SINGLE BOOK ===========================
 
-  function renderBook(bookName, targetVerse) {
-    const verses = state.byBook[bookName] || [];
+  /**
+   * Fetch a book's full WEB text (per-book file, ~65–145 KB).
+   * Cached in state; concurrent calls share a single in-flight promise.
+   */
+  function loadBibleBook(bookName) {
+    const slug = slugBook(bookName);
+    if (state.bibleCache[slug]) return Promise.resolve(state.bibleCache[slug]);
+    if (state.bibleLoading[slug]) return state.bibleLoading[slug];
+    const p = fetch(`./bible/${slug}.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load ${slug}: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        state.bibleCache[slug] = data;
+        delete state.bibleLoading[slug];
+        return data;
+      })
+      .catch((err) => {
+        delete state.bibleLoading[slug];
+        throw err;
+      });
+    state.bibleLoading[slug] = p;
+    return p;
+  }
+
+  function updateReturnPill() {
+    const pill = $('#return-pill');
+    if (!pill) return;
+    if (state.returnRef && state.returnRef.hash) {
+      pill.setAttribute('href', state.returnRef.hash);
+      pill.hidden = false;
+    } else {
+      pill.hidden = true;
+    }
+  }
+
+  async function renderBook(bookName, targetVerse) {
     const meta = state.bookMeta[bookName] || {};
     $('#book-eyebrow').textContent = `Book ${(meta.number || '').toUpperCase()}`;
     $('#book-title').textContent = bookName;
     $('#book-lede').textContent = meta.lede || '';
+    updateReturnPill();
 
     const list = $('#book-list');
-    if (!verses.length) {
-      list.innerHTML = '<p style="color:var(--ink-muted);padding:2rem 0">Loading…</p>';
+    list.innerHTML = '<p class="book-loading">Loading the full chapter…</p>';
+
+    // Build a set of "chapter:verse" keys for verses Jesus spoke in this book.
+    // Falls back to an empty set if quotes haven't loaded yet.
+    const jesusVerses = new Set();
+    for (const q of (state.byBook[bookName] || [])) {
+      jesusVerses.add(`${q.chapter}:${q.verse}`);
+    }
+
+    let book;
+    try {
+      book = await loadBibleBook(bookName);
+    } catch (err) {
+      console.error(err);
+      list.innerHTML =
+        '<p class="book-loading">Couldn’t load this book. Check your connection and refresh.</p>';
       return;
     }
-    let lastChapter = null;
+
+    const chapters = book.chapters || {};
+    const chapterKeys = Object.keys(chapters).sort((a, b) => Number(a) - Number(b));
+
     let html = '';
-    for (const q of verses) {
-      if (q.chapter !== lastChapter) {
-        html += `
-          <div class="chapter-divider" id="chapter-${q.chapter}">
-            <div class="chapter-divider__ornament">
-              <span class="chapter-divider__label">Chapter ${q.chapter}</span>
-            </div>
-          </div>
-        `;
-        lastChapter = q.chapter;
-      }
-      // Anchor id lets deep-links from the Ask tab jump straight to a verse.
-      const anchorId = `v-${q.chapter}-${q.verse}`;
+    for (const ch of chapterKeys) {
       html += `
-        <div class="verse" id="${anchorId}" data-verse="${q.chapter}:${q.verse}">
-          <div class="verse__ref">${escapeHtml(q.book)} ${q.chapter}:${q.verse}</div>
-          <p class="verse__text">${escapeHtml(q.text)}</p>
+        <div class="chapter-divider" id="chapter-${ch}">
+          <div class="chapter-divider__ornament">
+            <span class="chapter-divider__label">Chapter ${ch}</span>
+          </div>
         </div>
-      `;
+        <div class="chapter">`;
+      for (const { v, t } of chapters[ch]) {
+        const isJesus = jesusVerses.has(`${ch}:${v}`);
+        html += `
+          <p class="passage${isJesus ? ' passage--jesus' : ''}" id="v-${ch}-${v}" data-verse="${ch}:${v}">
+            <span class="passage__num" aria-hidden="true">${v}</span><span class="passage__text">${escapeHtml(t)}</span>
+          </p>`;
+      }
+      html += `</div>`;
     }
     list.innerHTML = html;
 
