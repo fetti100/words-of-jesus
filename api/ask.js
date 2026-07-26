@@ -126,13 +126,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { question } = req.body || {};
+  const { question, firstAnswer } = req.body || {};
   if (!question || typeof question !== "string" || question.trim().length === 0) {
     return res.status(400).json({ error: "Missing 'question' in request body" });
   }
   if (question.length > 500) {
     return res.status(400).json({ error: "Question too long (max 500 chars)" });
   }
+  // Default to true when the field is omitted — keeps the disclaimer for older clients.
+  const isFirst = firstAnswer !== false;
 
   if (!USING_PROXY && (!process.env.OPENAI_API_KEY || !process.env.ANTHROPIC_API_KEY)) {
     return res.status(500).json({
@@ -172,10 +174,17 @@ export default async function handler(req, res) {
     });
     const contextBlock = buildContextBlock(topVerses);
 
+    // The system prompt describes how to handle the "written by human hands"
+    // disclaimer on the first answer. On follow-ups, tell the model to skip it —
+    // the user has already read it once in this conversation.
+    const systemPrompt = isFirst
+      ? SYSTEM_PROMPT
+      : SYSTEM_PROMPT + `\n\n# CONVERSATION CONTINUATION\n\nThis is a FOLLOW-UP question in an ongoing conversation. The user already saw the "the men who wrote and compiled the Bible were only human" note in the very first answer of this conversation. **Do NOT repeat that disclaimer.** If the topic is one I didn't directly address, simply say so and offer the closest thematic quote — without re-explaining that the Bible was written by humans. Say it once per conversation, not once per answer.`;
+
     const stream = await anthropic.messages.stream({
       model: CLAUDE_MODEL,
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: "user",

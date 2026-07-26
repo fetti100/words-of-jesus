@@ -415,11 +415,16 @@
     const exchange = convThread.lastElementChild;
     const answerEl = exchange.querySelector('[data-answer]');
 
+    // Is this the first Q&A in the current chat? (addExchange already pushed
+    // the pending exchange, so length===1 means this is the opener.)
+    const isFirstAnswer = !state.currentChat
+      || state.currentChat.exchanges.length <= 1;
+
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, firstAnswer: isFirstAnswer }),
       });
       if (!res.ok || !res.body) {
         const errText = await res.text().catch(() => '');
@@ -523,6 +528,14 @@
     // Red-letter tradition: any quoted phrase (curly or straight quotes) is Jesus's words.
     // Match "...", “...”, or mixed. Non-greedy, at least one char, no line break inside.
     s = s.replace(/(&quot;|“)([^”“\n]+?)(&quot;|”)/g, '<span class="red-letter">$1$2$3</span>');
+    // Book reference at end of a line: " — Matthew 5:44" or " - Matthew 5:44"
+    // Wrap the em-dash + book + chapter:verse in a .cite span (tan/parchment).
+    // Match: optional space, em-dash or hyphen, book name (letters + optional dot),
+    // optional numeric prefix ("1 Corinthians"), then chapter:verse(-verse).
+    s = s.replace(
+      /\s*(\u2014|\u2013|--|-)\s*((?:[123]\s)?[A-Z][a-z]+(?:\.?)?)\s+(\d+:\d+(?:-\d+)?)/g,
+      ' <span class="cite">\u2014 $2 $3</span>'
+    );
     return s;
   }
 
@@ -562,6 +575,102 @@
     if (activeRecognition) {
       try { activeRecognition.stop(); } catch (_) {}
     }
+  }
+
+  // Convert spoken punctuation words to marks, and infer a question mark
+  // for interrogative sentences that end without one (iOS Web Speech
+  // returns unpunctuated text by default).
+  const QUESTION_STARTERS = new Set([
+    'what','who','whom','whose','where','when','why','how','which',
+    'is','are','was','were','am',
+    'do','does','did',
+    'can','could','will','would','should','shall',
+    'may','might','must',
+    'have','has','had',
+    'am','aren\u2019t','aren\'t','isn\u2019t','isn\'t','wasn\u2019t','wasn\'t','weren\u2019t','weren\'t',
+    'don\u2019t','don\'t','doesn\u2019t','doesn\'t','didn\u2019t','didn\'t',
+    'won\u2019t','won\'t','wouldn\'t','wouldn\u2019t','couldn\u2019t','couldn\'t','shouldn\u2019t','shouldn\'t',
+    'tell','show','give','ask',   // "tell me who..." style
+  ]);
+
+  // Chunk-safe variant used for intermediate finalized pieces: does NOT infer
+  // terminal punctuation (that would drop periods mid-sentence when more speech
+  // is coming). Only substitutes spoken words and cleans up whitespace.
+  function humanizeVoiceChunk(raw) {
+    if (!raw) return '';
+    let text = raw.trim();
+    const substitutions = [
+      [/\s*\bnew paragraph\b\s*/gi, '\n\n'],
+      [/\s*\bnew line\b\s*/gi, '\n'],
+      [/\s*\bquestion mark\b\s*/gi, '? '],
+      [/\s*\bexclamation (?:point|mark)\b\s*/gi, '! '],
+      [/\s*\bperiod\b\s*/gi, '. '],
+      [/\s*\bfull stop\b\s*/gi, '. '],
+      [/\s*\bcomma\b\s*/gi, ', '],
+      [/\s*\bsemicolon\b\s*/gi, '; '],
+      [/\s*\bcolon\b\s*/gi, ': '],
+      [/\s*\bdash\b\s*/gi, ' \u2014 '],
+      [/\s*\bem dash\b\s*/gi, ' \u2014 '],
+      [/\s*\bhyphen\b\s*/gi, '-'],
+      [/\s*\bopen (?:quote|quotes|quotation mark)\b\s*/gi, ' \u201c'],
+      [/\s*\bclose (?:quote|quotes|quotation mark)\b\s*/gi, '\u201d '],
+    ];
+    for (const [pattern, replacement] of substitutions) {
+      text = text.replace(pattern, replacement);
+    }
+    text = text.replace(/\s+([,.;:!?])/g, '$1');
+    text = text.replace(/[ \t]+/g, ' ').trim();
+    text = text.replace(/(^|[.!?]\s+)([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+    text = text.replace(/\bi\b/g, 'I');
+    text = text.replace(/\bi'([a-z])/g, (_, c) => "I'" + c);
+    return text;
+  }
+
+  function humanizeVoice(raw) {
+    if (!raw) return '';
+    let text = raw.trim();
+
+    // Spoken punctuation → marks. Word boundaries; case-insensitive.
+    // Order matters: multi-word phrases first.
+    const substitutions = [
+      [/\s*\bnew paragraph\b\s*/gi, '\n\n'],
+      [/\s*\bnew line\b\s*/gi, '\n'],
+      [/\s*\bquestion mark\b\s*/gi, '? '],
+      [/\s*\bexclamation (?:point|mark)\b\s*/gi, '! '],
+      [/\s*\bperiod\b\s*/gi, '. '],
+      [/\s*\bfull stop\b\s*/gi, '. '],
+      [/\s*\bcomma\b\s*/gi, ', '],
+      [/\s*\bsemicolon\b\s*/gi, '; '],
+      [/\s*\bcolon\b\s*/gi, ': '],
+      [/\s*\bdash\b\s*/gi, ' \u2014 '],
+      [/\s*\bem dash\b\s*/gi, ' \u2014 '],
+      [/\s*\bhyphen\b\s*/gi, '-'],
+      [/\s*\bopen (?:quote|quotes|quotation mark)\b\s*/gi, ' \u201c'],
+      [/\s*\bclose (?:quote|quotes|quotation mark)\b\s*/gi, '\u201d '],
+    ];
+    for (const [pattern, replacement] of substitutions) {
+      text = text.replace(pattern, replacement);
+    }
+
+    // Collapse whitespace and clean up spaces around punctuation
+    text = text.replace(/\s+([,.;:!?])/g, '$1');
+    text = text.replace(/[ \t]+/g, ' ').trim();
+
+    // If the sentence still ends without terminal punctuation, guess one.
+    // Look at first word to see whether it opens as a question.
+    if (text && !/[.!?\u2026]$/.test(text)) {
+      const firstWord = (text.match(/^([A-Za-z\u2019']+)/) || [])[1] || '';
+      const isQuestion = QUESTION_STARTERS.has(firstWord.toLowerCase());
+      text += isQuestion ? '?' : '.';
+    }
+
+    // Sentence-start capitalization
+    text = text.replace(/(^|[.!?]\s+)([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+    // "i" → "I"
+    text = text.replace(/\bi\b/g, 'I');
+    text = text.replace(/\bi'([a-z])/g, (_, c) => "I'" + c);
+
+    return text;
   }
 
   function attachMic(micBtn, inputEl) {
@@ -605,9 +714,12 @@
           else interim += transcript;
         }
         if (finalPiece) {
+          // Humanize the finalized chunk (spoken punctuation → marks, cap "I",
+          // etc.) before appending. Terminal punctuation is added on onend.
+          const humanized = humanizeVoiceChunk(finalPiece.trim());
           recognitionBaseText = (recognitionBaseText
             ? recognitionBaseText + ' '
-            : '') + finalPiece.trim();
+            : '') + humanized;
         }
         const composed = interim
           ? (recognitionBaseText ? recognitionBaseText + ' ' + interim : interim)
@@ -634,6 +746,13 @@
           activeRecognition = null;
           activeMicBtn = null;
           activeInputEl = null;
+        }
+        // Final humanization pass on the whole field — adds a terminal "." or
+        // "?" if the sentence still doesn't have one.
+        const finalText = humanizeVoice(inputEl.value);
+        if (finalText !== inputEl.value) {
+          inputEl.value = finalText;
+          autoGrow(inputEl);
         }
         // Keep focus on the field so the user can either submit or keep typing
         try { inputEl.focus({ preventScroll: true }); } catch (_) {}
