@@ -24,10 +24,95 @@
     },
     view: 'home',
     theme: 'dark',
+    // Conversation state (persisted)
+    currentChat: null,        // { id, name, exchanges: [{q, a, at}], createdAt, updatedAt }
   };
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+  // ========================== Storage (30-day TTL) ==========================
+
+  const STORAGE_KEY = 'woj.chats.v1';
+  const RETENTION_DAYS = 30;
+  const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  // In-memory fallback for sandboxed contexts where localStorage throws.
+  const memoryStore = {};
+  function safeGet(key) {
+    try { return localStorage.getItem(key); }
+    catch (_) { return memoryStore[key] || null; }
+  }
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, value); return true; }
+    catch (_) { memoryStore[key] = value; return true; }
+  }
+
+  const storage = {
+    // Returns array of chats, purging any older than 30 days.
+    list() {
+      const raw = safeGet(STORAGE_KEY);
+      if (!raw) return [];
+      let chats = [];
+      try { chats = JSON.parse(raw) || []; }
+      catch (_) { return []; }
+      const cutoff = Date.now() - RETENTION_MS;
+      const kept = chats.filter(c => (c.updatedAt || c.createdAt || 0) >= cutoff);
+      if (kept.length !== chats.length) safeSet(STORAGE_KEY, JSON.stringify(kept));
+      // Newest first
+      return kept.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    },
+    get(id) {
+      return this.list().find(c => c.id === id) || null;
+    },
+    upsert(chat) {
+      const all = this.list();
+      const idx = all.findIndex(c => c.id === chat.id);
+      chat.updatedAt = Date.now();
+      if (idx >= 0) all[idx] = chat;
+      else all.unshift(chat);
+      safeSet(STORAGE_KEY, JSON.stringify(all));
+      return chat;
+    },
+    remove(id) {
+      const all = this.list().filter(c => c.id !== id);
+      safeSet(STORAGE_KEY, JSON.stringify(all));
+    },
+    hasAny() { return this.list().length > 0; },
+  };
+
+  function newChatId() {
+    // Short, sortable, unique enough for local use.
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function ensureCurrentChat() {
+    if (!state.currentChat) {
+      state.currentChat = {
+        id: newChatId(),
+        name: null,
+        exchanges: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+    }
+    return state.currentChat;
+  }
+
+  function persistCurrentChat() {
+    if (!state.currentChat) return;
+    // Only persist if it's been named (opted-in) OR has at least one exchange (autosave for restore-on-refresh)
+    if (!state.currentChat.exchanges.length) return;
+    storage.upsert(state.currentChat);
+    refreshHomeHistoryDoor();
+    refreshSaveButton();
+  }
+
+  function refreshHomeHistoryDoor() {
+    const door = $('#home-history-door');
+    if (!door) return;
+    door.hidden = !storage.hasAny();
+  }
 
   // ============================== Theme ==============================
 
@@ -68,7 +153,11 @@
     const hash = window.location.hash.replace(/^#/, '') || '/';
     const parts = hash.split('/').filter(Boolean);
     if (parts.length === 0) return { name: 'home' };
-    if (parts[0] === 'ask') return { name: 'conversation' };
+    if (parts[0] === 'ask') {
+      if (parts[1]) return { name: 'conversation', chatId: parts[1] };
+      return { name: 'conversation' };
+    }
+    if (parts[0] === 'history') return { name: 'history' };
     if (parts[0] === 'read') {
       if (parts[1]) return { name: 'book', book: prettyBook(parts[1]) };
       return { name: 'read' };
@@ -95,6 +184,7 @@
       const target = a.dataset.nav;
       const isActive = (name === 'home' && target === 'ask')
         || (name === 'conversation' && target === 'ask')
+        || (name === 'history' && target === 'ask')
         || (name === 'read' && target === 'read')
         || (name === 'book' && target === 'read')
         || (name === 'books' && target === 'books');
@@ -110,10 +200,28 @@
       case 'home':
         showView('home');
         renderHomeExamples();
+        refreshHomeHistoryDoor();
         setTimeout(() => $('#ask-input')?.focus({ preventScroll: true }), 400);
         break;
       case 'conversation':
         showView('conversation');
+        // Restore a saved chat if the URL includes its id
+        if (r.chatId) {
+          const saved = storage.get(r.chatId);
+          if (saved) {
+            state.currentChat = saved;
+            paintConversation();
+          } else {
+            // Chat doesn't exist (maybe expired) — fall back to a new chat
+            state.currentChat = null;
+            paintConversation();
+          }
+        }
+        refreshSaveButton();
+        break;
+      case 'history':
+        showView('history');
+        renderHistory();
         break;
       case 'read':
         showView('read');
@@ -199,6 +307,14 @@
   const convInput = $('#conv-input');
   const convThread = $('#conv-thread');
 
+  // "New chat" link — clear current chat state so we don't append to a previous one
+  document.addEventListener('click', (e) => {
+    const backLink = e.target.closest('.conv__back');
+    if (backLink) {
+      state.currentChat = null;
+    }
+  });
+
   function autoGrow(textarea) {
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 192) + 'px';
@@ -231,11 +347,15 @@
     if (!q) return;
     convInput.value = '';
     autoGrow(convInput);
+    if (saveForm && !saveForm.hidden) saveForm.hidden = true;
     addExchange(q);
+    refreshSaveButton();
     streamAnswer(q);
   });
 
   function askQuestion(q) {
+    // Fresh chat when starting from home
+    state.currentChat = null;
     // Navigate to conversation view, then add the exchange
     if (state.view !== 'conversation') {
       window.location.hash = '#/ask';
@@ -251,6 +371,10 @@
   }
 
   function addExchange(question) {
+    ensureCurrentChat();
+    // Record the question in state; the answer is filled in as it streams
+    state.currentChat.exchanges.push({ q: question, a: '', at: Date.now() });
+
     const wrap = document.createElement('div');
     wrap.className = 'exchange';
     wrap.innerHTML = `
@@ -265,6 +389,26 @@
       wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
     return wrap;
+  }
+
+  // Re-render the whole thread from state.currentChat (used when restoring a saved chat)
+  function paintConversation() {
+    if (!convThread) return;
+    convThread.innerHTML = '';
+    if (!state.currentChat || !state.currentChat.exchanges.length) {
+      refreshSaveButton();
+      return;
+    }
+    state.currentChat.exchanges.forEach(ex => {
+      const wrap = document.createElement('div');
+      wrap.className = 'exchange';
+      wrap.innerHTML = `
+        <blockquote class="exchange__question">${escapeHtml(ex.q)}</blockquote>
+        <div class="exchange__answer" data-answer>${renderMarkdown(ex.a || '')}</div>
+      `;
+      convThread.appendChild(wrap);
+    });
+    refreshSaveButton();
   }
 
   async function streamAnswer(question) {
@@ -330,6 +474,13 @@
 
       // Final render pass
       answerEl.innerHTML = renderMarkdown(fullText || '');
+
+      // Persist the answer into the current chat
+      if (state.currentChat && state.currentChat.exchanges.length) {
+        const last = state.currentChat.exchanges[state.currentChat.exchanges.length - 1];
+        last.a = fullText || '';
+        persistCurrentChat();
+      }
     } catch (err) {
       console.error(err);
       answerEl.innerHTML = `<div class="exchange__error">Something interrupted the connection. ${escapeHtml(err.message || 'Try again in a moment.')}</div>`;
@@ -382,6 +533,139 @@
       .replace(/'/g, '&#039;');
   }
   function escapeAttr(s) { return escapeHtml(s); }
+
+  // ========================= Save chat + History ==========================
+
+  const saveBtn = $('#save-chat-btn');
+  const saveLabel = $('#save-chat-label');
+  const saveForm = $('#save-form');
+  const saveFormEl = $('#save-form-el');
+  const saveNameInput = $('#save-name');
+  const saveCancel = $('#save-cancel');
+
+  function refreshSaveButton() {
+    if (!saveBtn) return;
+    const chat = state.currentChat;
+    const hasContent = chat && chat.exchanges && chat.exchanges.length > 0;
+    saveBtn.disabled = !hasContent;
+    saveBtn.style.opacity = hasContent ? '' : '0.5';
+    saveBtn.style.pointerEvents = hasContent ? '' : 'none';
+
+    if (chat && chat.name) {
+      saveBtn.classList.add('is-saved');
+      saveLabel.textContent = 'Saved as “' + chat.name + '”';
+    } else {
+      saveBtn.classList.remove('is-saved');
+      saveLabel.textContent = 'Save this chat';
+    }
+  }
+
+  saveBtn?.addEventListener('click', () => {
+    if (!state.currentChat || !state.currentChat.exchanges.length) return;
+    saveForm.hidden = false;
+    saveNameInput.value = state.currentChat.name || '';
+    setTimeout(() => saveNameInput.focus(), 50);
+  });
+
+  saveCancel?.addEventListener('click', () => {
+    saveForm.hidden = true;
+  });
+
+  saveFormEl?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = saveNameInput.value.trim();
+    if (!name) { saveNameInput.focus(); return; }
+    ensureCurrentChat();
+    state.currentChat.name = name;
+    persistCurrentChat();
+    saveForm.hidden = true;
+  });
+
+  function formatChatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diff = now.getTime() - d.getTime();
+    if (diff < dayMs && now.getDate() === d.getDate()) {
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    if (diff < 7 * dayMs) {
+      return d.toLocaleDateString([], { weekday: 'short' }) + ', ' +
+             d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
+  function chatPreview(chat) {
+    if (!chat.exchanges || !chat.exchanges.length) return '';
+    const first = chat.exchanges[0];
+    return first.q || '';
+  }
+
+  function chatDisplayName(chat) {
+    if (chat.name) return chat.name;
+    // Fallback — unsaved auto-persisted chats show the first question as their handle
+    const prev = chatPreview(chat);
+    if (prev) return prev.length > 60 ? prev.slice(0, 60) + '…' : prev;
+    return 'Untitled chat';
+  }
+
+  const historyList = $('#history-list');
+  const historyEmpty = $('#history-empty');
+
+  function renderHistory() {
+    if (!historyList) return;
+    const chats = storage.list();
+    if (!chats.length) {
+      historyList.innerHTML = '';
+      if (historyEmpty) historyEmpty.hidden = false;
+      return;
+    }
+    if (historyEmpty) historyEmpty.hidden = true;
+
+    historyList.innerHTML = chats.map(chat => {
+      const name = chatDisplayName(chat);
+      const preview = chatPreview(chat);
+      const meta = formatChatDate(chat.updatedAt || chat.createdAt);
+      const count = chat.exchanges.length;
+      const countLabel = count === 1 ? '1 exchange' : count + ' exchanges';
+      return `
+        <a class="history-card" href="#/ask/${encodeURIComponent(chat.id)}">
+          <div class="history-card__body">
+            <h3 class="history-card__name">${escapeHtml(name)}</h3>
+            <p class="history-card__preview">${escapeHtml(preview)}</p>
+            <div class="history-card__meta">
+              <span>${escapeHtml(meta)}</span>
+              <span class="dot">·</span>
+              <span>${countLabel}</span>
+            </div>
+          </div>
+          <button type="button" class="history-card__delete"
+                  data-delete-chat="${escapeAttr(chat.id)}"
+                  aria-label="Delete this chat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+          </button>
+        </a>`;
+    }).join('');
+  }
+
+  historyList?.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('[data-delete-chat]');
+    if (!delBtn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = delBtn.getAttribute('data-delete-chat');
+    storage.remove(id);
+    // If we just deleted the chat currently loaded, clear state
+    if (state.currentChat && state.currentChat.id === id) {
+      state.currentChat = null;
+    }
+    renderHistory();
+    refreshHomeHistoryDoor();
+  });
 
   // ============================== READ ================================
 

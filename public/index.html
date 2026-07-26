@@ -145,6 +145,10 @@
                   <span class="home__door-label">Browse by book</span>
                   <span class="home__door-arrow" aria-hidden="true">→</span>
                 </a>
+                <a href="#/history" class="home__door home__door--history" id="home-history-door" hidden>
+                  <span class="home__door-label">Your saved chats</span>
+                  <span class="home__door-arrow" aria-hidden="true">→</span>
+                </a>
               </div>
             </div>
           </div>
@@ -154,10 +158,45 @@
       <!-- View 2: Ask conversation -->
       <section class="view view--conversation" data-view="conversation" hidden>
         <div class="conv" id="conv">
-          <a href="#/" class="conv__back" data-testid="link-back-home">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-            <span>Ask something else</span>
-          </a>
+          <div class="conv__topbar">
+            <a href="#/" class="conv__back" data-testid="link-back-home">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+              <span>New chat</span>
+            </a>
+            <div class="conv__actions">
+              <a href="#/history" class="conv__action-link" title="Saved chats" data-testid="link-history">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <span>History</span>
+              </a>
+              <button type="button" class="conv__action-btn" id="save-chat-btn" data-testid="button-save-chat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                <span id="save-chat-label">Save this chat</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Inline save form (hidden until Save is tapped) -->
+          <div class="save-form" id="save-form" hidden>
+            <div class="save-form__eyebrow">Give this chat a name so you can find it later.</div>
+            <form id="save-form-el" autocomplete="off">
+              <input
+                type="text"
+                id="save-name"
+                class="save-form__input"
+                placeholder="Your first name, or a title for this chat"
+                maxlength="60"
+                autocapitalize="words"
+                spellcheck="false"
+                data-testid="input-save-name"
+              />
+              <div class="save-form__actions">
+                <button type="button" class="save-form__cancel" id="save-cancel">Cancel</button>
+                <button type="submit" class="save-form__submit">Save</button>
+              </div>
+            </form>
+            <div class="save-form__note">Saved on this device for 30 days, then deleted. No account needed.</div>
+          </div>
+
           <div class="conv__thread" id="conv-thread" aria-live="polite"></div>
 
           <form class="ask ask--inline" id="conv-form" autocomplete="off">
@@ -240,6 +279,34 @@
         </div>
       </section>
 
+      <!-- View 6: Saved chats history -->
+      <section class="view view--history" data-view="history" hidden>
+        <div class="read">
+          <header class="read__header">
+            <a href="#/" class="read__back">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+              <span>Home</span>
+            </a>
+            <div class="read__eyebrow">History</div>
+            <h2 class="read__title">Your saved chats.</h2>
+            <p class="read__lede">
+              Everything you save stays on this device for 30 days, then
+              disappears. No account, no email, no server.
+            </p>
+          </header>
+          <div class="history__body">
+            <div id="history-list"></div>
+            <div class="history__empty" id="history-empty" hidden>
+              <div class="history__empty-title">Nothing saved yet.</div>
+              <div class="history__empty-body">
+                Start a chat, then tap <em>Save this chat</em> to keep it here.
+              </div>
+              <a href="#/" class="history__empty-cta">Ask a question</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- View 5: Single book -->
       <section class="view view--book" data-view="book" hidden>
         <div class="read">
@@ -268,6 +335,10 @@
           words of Jesus (the &ldquo;red letters&rdquo;) across Matthew, Mark, Luke,
           John, Acts, and Revelation. Verse text from
           <a href="https://ebible.org/web/" target="_blank" rel="noopener noreferrer">eBible.org</a>.
+        </p>
+        <p class="footer__note footer__privacy">
+          Conversations are kept on your device for 30 days, then deleted. No
+          account required.
         </p>
         <p class="footer__meta">A private reading project &middot; Share freely</p>
       </div>
