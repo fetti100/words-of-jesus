@@ -1204,11 +1204,15 @@ a.cite:hover,
   user-select: none;
 }
 .passage__text { display: inline; }
-.passage--jesus .passage__text {
+/* Verse-level marker: this verse contains a Jesus quote. We tint the verse
+   number, but the verse body stays in normal ink so narrator prose reads
+   correctly. The actual quote text is colored by .jesus-quote below. */
+.passage--has-jesus .passage__num { color: var(--red); }
+/* Inline span wrapping only the exact words Jesus spoke. */
+.jesus-quote {
   color: var(--red-letter);
   font-weight: 500;
 }
-.passage--jesus .passage__num { color: var(--red); }
 
 /* Deep-linked verse highlight also works for .passage rows */
 .passage.verse--highlight {

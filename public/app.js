@@ -1216,6 +1216,128 @@
     }
   }
 
+  /**
+   * Wrap each Jesus quote inside a verse in a red-letter span, leaving
+   * narrator text ("Jesus said,", "She said, 'No one, Lord.'", etc.) in
+   * normal ink. Matching is done on normalized text (quotes/whitespace)
+   * but the rendered output preserves the WEB's original punctuation.
+   */
+  function markJesusQuotes(verseText, quotes) {
+    // Normalize for fuzzy matching: lowercase, strip whitespace, fold curly
+    // quotes to straight, drop punctuation. Robust to edition drift between
+    // the WEB source and our quotes.json (e.g. "thirst after" vs "thirst for").
+    const fuzzy = (s) => s
+      .toLowerCase()
+      .replace(/[\u201C\u201D\u2033\u2018\u2019\u2032"']/g, '')
+      .replace(/[\s.,;:!?\-\u2014\u2013]/g, '');
+    // Extract lowercase content-word tokens for word-overlap fallback,
+    // dropping common stopwords so partial matches on "the", "and", "of"
+    // don't inflate the score.
+    const STOP = new Set(['the','a','an','and','or','of','to','in','on','for','with','is','be','are','was','were','you','your','my','me','i','he','she','it','they','them','him','her','this','that','these','those','not','do','did','so']);
+    const wordSet = (s) => {
+      const words = s.toLowerCase()
+        .replace(/[\u201C\u201D\u2018\u2019\u2033\u2032"']/g,' ')
+        .replace(/[.,;:!?\-\u2014\u2013]/g,' ')
+        .split(/\s+/)
+        .filter(w => w && !STOP.has(w));
+      return new Set(words);
+    };
+    const jaccard = (a, b) => {
+      if (!a.size || !b.size) return 0;
+      let intersection = 0;
+      for (const w of a) if (b.has(w)) intersection++;
+      const union = a.size + b.size - intersection;
+      return intersection / union;
+    };
+
+    // Fingerprints of Jesus's known utterances for this verse (both forms).
+    const fingerprints = quotes
+      .map(q => fuzzy(q))
+      .filter(f => f.length > 0);
+    const fingerprintWordSets = quotes.map(q => wordSet(q));
+    if (!fingerprints.length) return escapeHtml(verseText);
+
+    // Decide whether a span between two quote marks contains Jesus's words.
+    // First try exact-fuzzy substring match; then fall back to Jaccard
+    // similarity on content words (catches edition drift like
+    // "Render to Caesar" vs "Give to Caesar").
+    const looksLikeJesus = (inner) => {
+      const fInner = fuzzy(inner);
+      if (!fInner) return false;
+      if (fingerprints.some(fp => fInner.includes(fp) || fp.includes(fInner))) return true;
+      const innerSet = wordSet(inner);
+      return fingerprintWordSets.some(fpSet => jaccard(innerSet, fpSet) >= 0.6);
+    };
+
+    // Walk the verse in three passes:
+    //   1. Leading closer with no earlier opener → verse began mid-quote from
+    //      the previous verse (long continuous Jesus speech). Redden start
+    //      through the closer.
+    //   2. Matched "..." pairs → fuzzy-match against Jesus quotes; redden if
+    //      they match, leave alone otherwise (that skips other speakers).
+    //   3. Trailing opener with no later closer → speech continues into the
+    //      next verse. Redden the opener through end-of-verse.
+    const spans = [];        // { start, end } pairs of chars to redden
+
+    // Pass 1: leading closer (before the first opener)?
+    const firstOpener = verseText.indexOf('\u201C');
+    const firstCloser = verseText.indexOf('\u201D');
+    let i = 0;
+    if (firstCloser >= 0 && (firstOpener < 0 || firstCloser < firstOpener)) {
+      // Verse begins inside an ongoing quote from a prior verse.
+      spans.push({ start: 0, end: firstCloser + 1 });
+      i = firstCloser + 1;
+    }
+
+    // Pass 2: matched "..." pairs, plus pass 3 as a fallthrough.
+    while (i < verseText.length) {
+      const openIdx = verseText.indexOf('\u201C', i);
+      if (openIdx < 0) break;
+      const closeIdx = verseText.indexOf('\u201D', openIdx + 1);
+      if (closeIdx < 0) {
+        // Unmatched opener — speech continues in the next verse.
+        spans.push({ start: openIdx, end: verseText.length });
+        break;
+      }
+      const inner = verseText.slice(openIdx + 1, closeIdx);
+      if (looksLikeJesus(inner)) spans.push({ start: openIdx, end: closeIdx + 1 });
+      i = closeIdx + 1;
+    }
+
+    // If we found no delimited "..." spans in this verse, we're inside a long
+    // continuous Jesus speech where the WEB puts the opening quote many verses
+    // earlier and the closing quote many verses later. In that case the entire
+    // verse text is Jesus (no narrator prose in the middle), so we redden the
+    // whole verse. This is safe: this branch only runs when the verse is on
+    // our Jesus-quotes list (i.e. quotes.json says Jesus spoke here).
+    if (!spans.length) {
+      const hasAnyQuoteMark = /[\u201C\u201D]/.test(verseText);
+      if (!hasAnyQuoteMark) {
+        return `<span class="jesus-quote">${escapeHtml(verseText)}</span>`;
+      }
+      // The verse does have quote marks, but nothing inside them fuzzy-matched
+      // a known Jesus quote. Try a whole-verse fuzzy fallback for edge cases.
+      const fVerse = fuzzy(verseText);
+      const wholeMatches = fingerprints.some(fp => fVerse.includes(fp) || fp.includes(fVerse));
+      if (wholeMatches) {
+        return `<span class="jesus-quote">${escapeHtml(verseText)}</span>`;
+      }
+      return escapeHtml(verseText);
+    }
+
+    // Emit alternating plain + red-letter segments.
+    spans.sort((a, b) => a.start - b.start);
+    let out = '';
+    let cursor = 0;
+    for (const { start, end } of spans) {
+      if (start > cursor) out += escapeHtml(verseText.slice(cursor, start));
+      out += `<span class="jesus-quote">${escapeHtml(verseText.slice(start, end))}</span>`;
+      cursor = end;
+    }
+    if (cursor < verseText.length) out += escapeHtml(verseText.slice(cursor));
+    return out;
+  }
+
   async function renderBook(bookName, targetVerse) {
     const meta = bookMetaFor(bookName);
     const lede = state.bookLedes[bookName] || '';
@@ -1229,11 +1351,14 @@
     const list = $('#book-list');
     list.innerHTML = '<p class="book-loading">Loading the full chapter…</p>';
 
-    // Build a set of "chapter:verse" keys for verses Jesus spoke in this book.
-    // Falls back to an empty set if quotes haven't loaded yet.
-    const jesusVerses = new Set();
+    // Build a lookup of Jesus's exact quoted phrases per chapter:verse.
+    // A single verse can hold multiple non-contiguous quotes; we mark each one
+    // in red-letter and leave narrator text ("Jesus said,", "She said,", etc.)
+    // in normal ink.
+    const jesusQuotesByCV = {};
     for (const q of (state.byBook[bookName] || [])) {
-      jesusVerses.add(`${q.chapter}:${q.verse}`);
+      const key = `${q.chapter}:${q.verse}`;
+      (jesusQuotesByCV[key] ||= []).push(q.text || '');
     }
 
     let book;
@@ -1259,10 +1384,15 @@
         </div>
         <div class="chapter">`;
       for (const { v, t } of chapters[ch]) {
-        const isJesus = jesusVerses.has(`${ch}:${v}`);
+        const cv = `${ch}:${v}`;
+        const quotes = jesusQuotesByCV[cv];
+        const hasJesus = !!(quotes && quotes.length);
+        const rendered = hasJesus
+          ? markJesusQuotes(t, quotes)
+          : escapeHtml(t);
         html += `
-          <p class="passage${isJesus ? ' passage--jesus' : ''}" id="v-${ch}-${v}" data-verse="${ch}:${v}">
-            <span class="passage__num" aria-hidden="true">${v}</span><span class="passage__text">${escapeHtml(t)}</span>
+          <p class="passage${hasJesus ? ' passage--has-jesus' : ''}" id="v-${ch}-${v}" data-verse="${cv}">
+            <span class="passage__num" aria-hidden="true">${v}</span><span class="passage__text">${rendered}</span>
           </p>`;
       }
       html += `</div>`;
