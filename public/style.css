@@ -621,13 +621,12 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
 .exchange__answer p { margin: 0 0 1.1rem; }
 .exchange__answer p:last-child { margin-bottom: 0; }
 
-/* Verse blockquotes — Jesus's words, in red-letter tradition */
+/* Verse blockquotes — Jesus's words in red, everything else in body ink */
 .exchange__answer blockquote {
   margin: 1.5rem 0;
   padding: 0.25rem 0 0.25rem 1.5rem;
-  /* Border and reference line stay in the tan/parchment family so only the
-     spoken words are red. */
-  border-left: 3px solid var(--ink-quiet);
+  /* Border and citations match body text — only the quoted words are red. */
+  border-left: 3px solid var(--ink);
   font-family: var(--display);
   font-size: var(--step-2);
   font-weight: 400;
@@ -637,7 +636,7 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
   letter-spacing: -0.005em;
 }
 .exchange__answer blockquote p { margin: 0; }
-/* The reference line inside a blockquote — tan/parchment, not red */
+/* The reference line inside a blockquote — body-ink color, not red, not tan */
 .exchange__answer blockquote em,
 .exchange__answer .ref {
   display: block;
@@ -648,18 +647,44 @@ body[data-current-view="home"] .chrome.is-scrolled { background: transparent; ba
   font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-quiet);
+  color: var(--ink);
 }
-/* Any inline reference chunk (em dash + book + chapter:verse) at the tail of
-   a blockquote paragraph — also tan/parchment. */
-.exchange__answer blockquote .cite {
-  color: var(--ink-quiet);
+/* Inline citation chunk (em dash + book + chapter:verse) at the tail of a
+   blockquote paragraph — also body-ink. Underline signals clickable. */
+.exchange__answer blockquote .cite,
+.exchange__answer .cite {
+  color: var(--ink);
   font-family: var(--ui);
   font-size: var(--step--1);
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+/* Anchor form: the citation is a link into the Read tab. */
+a.cite,
+.exchange__answer a.cite {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 160ms var(--ease), color 160ms var(--ease);
+}
+a.cite:hover,
+.exchange__answer a.cite:hover {
+  color: var(--red-letter);
+  text-decoration-color: var(--red-letter);
+}
+
+/* Deep-linked verse in the Read tab: brief highlight, ~2.4s */
+.verse--highlight {
+  animation: verse-flash 2.4s var(--ease);
+}
+@keyframes verse-flash {
+  0%   { background: transparent; box-shadow: 0 0 0 0 transparent; }
+  15%  { background: var(--red-glow); box-shadow: 0 0 0 8px var(--red-glow); }
+  100% { background: transparent; box-shadow: 0 0 0 0 transparent; }
 }
 
 .exchange__answer strong { color: var(--ink); font-weight: 500; }

@@ -150,7 +150,15 @@
   // ============================== Router ==============================
 
   function parseRoute() {
-    const hash = window.location.hash.replace(/^#/, '') || '/';
+    let hash = window.location.hash.replace(/^#/, '') || '/';
+    // Split off an optional query string: '/read/matthew?v=5:44' → path + params
+    let query = '';
+    const qIdx = hash.indexOf('?');
+    if (qIdx >= 0) {
+      query = hash.slice(qIdx + 1);
+      hash = hash.slice(0, qIdx);
+    }
+    const params = new URLSearchParams(query);
     const parts = hash.split('/').filter(Boolean);
     if (parts.length === 0) return { name: 'home' };
     if (parts[0] === 'ask') {
@@ -159,7 +167,10 @@
     }
     if (parts[0] === 'history') return { name: 'history' };
     if (parts[0] === 'read') {
-      if (parts[1]) return { name: 'book', book: prettyBook(parts[1]) };
+      if (parts[1]) {
+        const verse = params.get('v');   // e.g. "5:44"
+        return { name: 'book', book: prettyBook(parts[1]), verse };
+      }
       return { name: 'read' };
     }
     if (parts[0] === 'books') return { name: 'books' };
@@ -234,7 +245,7 @@
       case 'book':
         if (!r.book) { window.location.hash = '#/books'; return; }
         showView('book');
-        renderBook(r.book);
+        renderBook(r.book, r.verse);
         break;
     }
   }
@@ -529,12 +540,19 @@
     // Match "...", “...”, or mixed. Non-greedy, at least one char, no line break inside.
     s = s.replace(/(&quot;|“)([^”“\n]+?)(&quot;|”)/g, '<span class="red-letter">$1$2$3</span>');
     // Book reference at end of a line: " — Matthew 5:44" or " - Matthew 5:44"
-    // Wrap the em-dash + book + chapter:verse in a .cite span (tan/parchment).
-    // Match: optional space, em-dash or hyphen, book name (letters + optional dot),
-    // optional numeric prefix ("1 Corinthians"), then chapter:verse(-verse).
+    // Turn the em-dash + book + chapter:verse into a link to the Read tab,
+    // scrolled to that exact verse. Only recognized book names are linked.
+    const CANON = new Set(['matthew','mark','luke','john','acts','revelation']);
     s = s.replace(
-      /\s*(\u2014|\u2013|--|-)\s*((?:[123]\s)?[A-Z][a-z]+(?:\.?)?)\s+(\d+:\d+(?:-\d+)?)/g,
-      ' <span class="cite">\u2014 $2 $3</span>'
+      /\s*(\u2014|\u2013|--|-)\s*((?:[123]\s)?[A-Z][a-z]+(?:\.?)?)\s+(\d+):(\d+)(?:-\d+)?/g,
+      (_, _dash, book, ch, v) => {
+        const bookKey = book.toLowerCase().replace(/\.$/, '');
+        if (!CANON.has(bookKey)) {
+          // Non-canonical name (or Old-Testament ref) — keep as plain span.
+          return ` <span class="cite">\u2014 ${book} ${ch}:${v}</span>`;
+        }
+        return ` <a class="cite" href="#/read/${bookKey}?v=${ch}:${v}">\u2014 ${book} ${ch}:${v}</a>`;
+      }
     );
     return s;
   }
@@ -714,9 +732,10 @@
           else interim += transcript;
         }
         if (finalPiece) {
-          // Humanize the finalized chunk (spoken punctuation → marks, cap "I",
-          // etc.) before appending. Terminal punctuation is added on onend.
-          const humanized = humanizeVoiceChunk(finalPiece.trim());
+          // When a chunk finalizes, humanize it AND add terminal punctuation
+          // to that chunk right away — iOS often chunks per sentence, so this
+          // makes the '?' or '.' show up mid-stream instead of only at onend.
+          const humanized = humanizeVoice(finalPiece.trim());
           recognitionBaseText = (recognitionBaseText
             ? recognitionBaseText + ' '
             : '') + humanized;
@@ -747,8 +766,8 @@
           activeMicBtn = null;
           activeInputEl = null;
         }
-        // Final humanization pass on the whole field — adds a terminal "." or
-        // "?" if the sentence still doesn't have one.
+        // Final safety net — if any unpunctuated interim text made it into
+        // the field, punctuate now that dictation is done.
         const finalText = humanizeVoice(inputEl.value);
         if (finalText !== inputEl.value) {
           inputEl.value = finalText;
@@ -1080,7 +1099,7 @@
 
   // ============================ SINGLE BOOK ===========================
 
-  function renderBook(bookName) {
+  function renderBook(bookName, targetVerse) {
     const verses = state.byBook[bookName] || [];
     const meta = state.bookMeta[bookName] || {};
     $('#book-eyebrow').textContent = `Book ${(meta.number || '').toUpperCase()}`;
@@ -1097,7 +1116,7 @@
     for (const q of verses) {
       if (q.chapter !== lastChapter) {
         html += `
-          <div class="chapter-divider">
+          <div class="chapter-divider" id="chapter-${q.chapter}">
             <div class="chapter-divider__ornament">
               <span class="chapter-divider__label">Chapter ${q.chapter}</span>
             </div>
@@ -1105,14 +1124,30 @@
         `;
         lastChapter = q.chapter;
       }
+      // Anchor id lets deep-links from the Ask tab jump straight to a verse.
+      const anchorId = `v-${q.chapter}-${q.verse}`;
       html += `
-        <div class="verse">
+        <div class="verse" id="${anchorId}" data-verse="${q.chapter}:${q.verse}">
           <div class="verse__ref">${escapeHtml(q.book)} ${q.chapter}:${q.verse}</div>
           <p class="verse__text">${escapeHtml(q.text)}</p>
         </div>
       `;
     }
     list.innerHTML = html;
+
+    // Deep-link: scroll target verse into view + briefly highlight it.
+    if (targetVerse) {
+      const [ch, vs] = String(targetVerse).split(':');
+      const el = document.getElementById(`v-${ch}-${vs}`);
+      if (el) {
+        // Defer so layout + fonts settle before scrolling.
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('verse--highlight');
+          setTimeout(() => el.classList.remove('verse--highlight'), 2400);
+        });
+      }
+    }
   }
 
   // ============================== Init ================================
