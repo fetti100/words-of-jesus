@@ -12,19 +12,23 @@
 
   const state = {
     quotes: [],
-    byBook: {},               // { Matthew: [verses], Mark: [...] }
-    bookOrder: ['Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Revelation'],
-    bookMeta: {
-      Matthew:    { number: 'i',   lede: 'The kingdom sermons, the parables, the great commission. His longest recorded voice.' },
-      Mark:       { number: 'ii',  lede: 'The urgent, action-driven account. His words in Mark are shorter, sharper, more direct.' },
-      Luke:       { number: 'iii', lede: 'The gospel of outsiders — Samaritans, sinners, the poor. Where he says the most about who he came for.' },
-      John:       { number: 'iv',  lede: 'The intimate discourses. Long, layered conversations about who he is and why he came.' },
-      Acts:       { number: 'v',   lede: 'A few words after the resurrection — final instructions to his followers, and a voice from heaven.' },
-      Revelation: { number: 'vi',  lede: 'Letters to seven churches and the closing vision. His voice as the risen Christ, speaking to the future.' },
+    byBook: {},               // { Matthew: [verses], Mark: [...] } — Jesus's words only
+    // The full 66-book Bible catalog is loaded from /bible/index.json at boot.
+    bibleCatalog: [],         // [{ key, name, testament, order, chapters, verses }, ...]
+    bookByKey: {},            // { matthew: {key,name,testament,order,...} }
+    bookByName: {},           // { Matthew: {key,name,...} }
+    // Extra editorial ledes for the six books where Jesus speaks.
+    bookLedes: {
+      Matthew:    'The kingdom sermons, the parables, the great commission. Where his voice is longest.',
+      Mark:       'The urgent, action-driven account. His words in Mark are shorter, sharper, more direct.',
+      Luke:       'The gospel of outsiders — Samaritans, sinners, the poor. Where he says the most about who he came for.',
+      John:       'The intimate discourses. Long, layered conversations about who he is and why he came.',
+      Acts:       'A few words after the resurrection — final instructions to his followers, and a voice from heaven.',
+      Revelation: 'Letters to seven churches and the closing vision. His voice as the risen Christ, speaking to the future.',
     },
-    // Cache of loaded WEB chapters, keyed by book slug.
+    // Cache of loaded WEB books, keyed by URL key (kebab-case for multi-word).
     bibleCache: {},           // { matthew: { chapters: { "1": [{v,t}], ... } }, ... }
-    bibleLoading: {},         // in-flight fetch promises, keyed by slug
+    bibleLoading: {},         // in-flight fetch promises, keyed by key
     // Where to return when the reader taps 'Back to conversation' in the book view.
     returnRef: null,          // { hash: '#/ask/<id>' | '#/ask' }
     view: 'home',
@@ -182,11 +186,28 @@
     return { name: 'home' };
   }
 
+  // Book ↔ URL slug lookup. Falls back to a normalized key if the catalog
+  // hasn't finished loading yet, so citation links parse deterministically.
   function prettyBook(slug) {
-    const map = { matthew: 'Matthew', mark: 'Mark', luke: 'Luke', john: 'John', acts: 'Acts', revelation: 'Revelation' };
-    return map[slug.toLowerCase()] || null;
+    if (!slug) return null;
+    const key = String(slug).toLowerCase();
+    if (state.bookByKey[key]) return state.bookByKey[key].name;
+    // Fallback (also covers legacy URL slugs like '1corinthians' without hyphen)
+    const stripped = key.replace(/[-_\s]/g, '');
+    for (const b of state.bibleCatalog) {
+      if (b.key.replace(/-/g, '') === stripped) return b.name;
+    }
+    return null;
   }
-  function slugBook(name) { return name.toLowerCase(); }
+  function slugBook(name) {
+    if (!name) return '';
+    if (state.bookByName[name]) return state.bookByName[name].key;
+    // Fallback: normalize display name to kebab-case url slug.
+    return String(name).toLowerCase().replace(/\s+/g, '-');
+  }
+  function bookMetaFor(name) {
+    return state.bookByName[name] || null;
+  }
 
   function showView(name) {
     state.view = name;
@@ -565,19 +586,19 @@
     // Red-letter tradition: any quoted phrase (curly or straight quotes) is Jesus's words.
     // Match "...", “...”, or mixed. Non-greedy, at least one char, no line break inside.
     s = s.replace(/(&quot;|“)([^”“\n]+?)(&quot;|”)/g, '<span class="red-letter">$1$2$3</span>');
-    // Book reference at end of a line: " — Matthew 5:44" or " - Matthew 5:44"
-    // Turn the em-dash + book + chapter:verse into a link to the Read tab,
-    // scrolled to that exact verse. Only recognized book names are linked.
-    const CANON = new Set(['matthew','mark','luke','john','acts','revelation']);
+    // Book reference at end of a line: " — Matthew 5:44", " — 1 Corinthians 13:4",
+    // or " — Song of Solomon 2:1". Turn the em-dash + book + chapter:verse into a
+    // link to the Read tab, scrolled to that exact verse.
     s = s.replace(
-      /\s*(\u2014|\u2013|--|-)\s*((?:[123]\s)?[A-Z][a-z]+(?:\.?)?)\s+(\d+):(\d+)(?:-\d+)?/g,
+      /\s*(\u2014|\u2013|--|-)\s*((?:[123]\s)?[A-Z][A-Za-z]+(?:\s+(?:of\s+)?[A-Z][A-Za-z]+)*)\s+(\d+):(\d+)(?:-\d+)?/g,
       (_, _dash, book, ch, v) => {
-        const bookKey = book.toLowerCase().replace(/\.$/, '');
-        if (!CANON.has(bookKey)) {
-          // Non-canonical name (or Old-Testament ref) — keep as plain span.
-          return ` <span class="cite">\u2014 ${book} ${ch}:${v}</span>`;
+        const cleaned = book.replace(/\.$/, '').replace(/\s+/g, ' ').trim();
+        const key = slugBook(cleaned);
+        // If the catalog knows this book, deep-link; otherwise render as plain span.
+        if (state.bookByKey[key]) {
+          return ` <a class="cite" href="#/read/${key}?v=${ch}:${v}">\u2014 ${cleaned} ${ch}:${v}</a>`;
         }
-        return ` <a class="cite" href="#/read/${bookKey}?v=${ch}:${v}">\u2014 ${book} ${ch}:${v}</a>`;
+        return ` <span class="cite">\u2014 ${cleaned} ${ch}:${v}</span>`;
       }
     );
     return s;
@@ -965,162 +986,195 @@
   const jumpToggle = $('#read-jump-toggle');
   const jumpMenu = $('#read-jump-menu');
 
-  let readRendered = false;
   let readSearchTerm = '';
 
+  /**
+   * Renders the Read view as a browsable index of all 66 books, split by
+   * Old / New Testament. Books that contain verses spoken by Jesus get a
+   * red-letter badge (count of his verses) so readers can find them fast.
+   * A search field filters the words-of-Jesus verses; each match links into
+   * the full-book view at the exact chapter:verse.
+   */
   function renderRead() {
-    if (readRendered) {
-      applyReadFilter();
+    if (!state.bibleCatalog.length) {
+      readList.innerHTML =
+        '<p class="book-loading">Loading the Bible…</p>';
+      return;
+    }
+    // Are we in search mode? If so, show verse matches instead of the index.
+    if (readSearchTerm) {
+      renderReadSearchResults();
       renderJumpMenu();
       return;
     }
-    if (!state.quotes.length) {
-      readList.innerHTML = '<p style="color:var(--ink-muted);padding:2rem 0;text-align:center;font-family:var(--body)">Loading the verses…</p>';
-      return;
-    }
+    // Otherwise: canonical index of all 66 books.
+    const ot = state.bibleCatalog.filter((b) => b.testament === 'OT');
+    const nt = state.bibleCatalog.filter((b) => b.testament === 'NT');
 
-    const frag = document.createDocumentFragment();
-    let lastBook = null;
-    let lastChapter = null;
+    const renderTile = (b) => {
+      const jesusVerses = (state.byBook[b.name] || []).length;
+      const badge = jesusVerses
+        ? `<span class="book-tile__badge" title="${jesusVerses} verses spoken by Jesus">${jesusVerses.toLocaleString()}</span>`
+        : '';
+      return `
+        <a href="#/read/${b.key}" class="book-tile${jesusVerses ? ' book-tile--jesus' : ''}" data-testid="link-book-${b.key}">
+          <span class="book-tile__name">${escapeHtml(b.name)}</span>
+          <span class="book-tile__meta">${b.chapters} ch</span>
+          ${badge}
+        </a>`;
+    };
 
-    for (const q of state.quotes) {
-      if (q.book !== lastBook) {
-        const div = document.createElement('div');
-        div.className = 'book-divider';
-        div.dataset.book = q.book;
-        div.id = `read-book-${slugBook(q.book)}`;
-        div.innerHTML = `
-          <div class="book-divider__eyebrow">Book ${(state.bookMeta[q.book]?.number || '').toUpperCase()}</div>
-          <div class="book-divider__name">${escapeHtml(q.book)}</div>
-        `;
-        frag.appendChild(div);
-        lastBook = q.book;
-        lastChapter = null;
-      }
-      if (q.chapter !== lastChapter) {
-        const cdiv = document.createElement('div');
-        cdiv.className = 'chapter-divider';
-        cdiv.innerHTML = `
-          <div class="chapter-divider__ornament">
-            <span class="chapter-divider__label">Chapter ${q.chapter}</span>
-          </div>
-        `;
-        frag.appendChild(cdiv);
-        lastChapter = q.chapter;
-      }
-
-      const v = document.createElement('div');
-      v.className = 'verse';
-      v.dataset.text = (q.text || '').toLowerCase();
-      v.innerHTML = `
-        <div class="verse__ref">${escapeHtml(q.book)} ${q.chapter}:${q.verse}</div>
-        <p class="verse__text">${escapeHtml(q.text)}</p>
-      `;
-      frag.appendChild(v);
-    }
-
-    readList.innerHTML = '';
-    readList.appendChild(frag);
-    readRendered = true;
+    readList.innerHTML = `
+      <section class="testament">
+        <header class="testament__header">
+          <div class="testament__eyebrow">Old Testament</div>
+          <div class="testament__count">${ot.length} books</div>
+        </header>
+        <div class="book-tiles">${ot.map(renderTile).join('')}</div>
+      </section>
+      <section class="testament">
+        <header class="testament__header">
+          <div class="testament__eyebrow">New Testament</div>
+          <div class="testament__count">${nt.length} books · <span class="testament__jesus-note">6 contain his words</span></div>
+        </header>
+        <div class="book-tiles">${nt.map(renderTile).join('')}</div>
+      </section>`;
+    if (readEmpty) readEmpty.hidden = true;
     renderJumpMenu();
   }
 
+  /**
+   * When the reader types in the search box, we hunt across the 2,055 verses
+   * Jesus spoke. Each hit renders as a compact card that links into the
+   * full-book view at the matching chapter:verse.
+   */
+  function renderReadSearchResults() {
+    const term = readSearchTerm;
+    const matches = state.quotes.filter((q) =>
+      (q.text || '').toLowerCase().includes(term),
+    );
+    if (!matches.length) {
+      readList.innerHTML = '';
+      if (readEmpty) readEmpty.hidden = false;
+      return;
+    }
+    if (readEmpty) readEmpty.hidden = true;
+    // Group by book for readability.
+    const byBook = new Map();
+    for (const m of matches) {
+      if (!byBook.has(m.book)) byBook.set(m.book, []);
+      byBook.get(m.book).push(m);
+    }
+    const highlight = (text) => {
+      const lower = text.toLowerCase();
+      const idx = lower.indexOf(term);
+      if (idx < 0) return escapeHtml(text);
+      return (
+        escapeHtml(text.slice(0, idx)) +
+        '<mark>' +
+        escapeHtml(text.slice(idx, idx + term.length)) +
+        '</mark>' +
+        escapeHtml(text.slice(idx + term.length))
+      );
+    };
+    let html = `<div class="search-summary">${matches.length.toLocaleString()} verse${matches.length === 1 ? '' : 's'} where Jesus said this.</div>`;
+    for (const [bookName, verses] of byBook) {
+      const key = slugBook(bookName);
+      html += `
+        <section class="search-book">
+          <header class="search-book__header">${escapeHtml(bookName)}</header>`;
+      for (const q of verses) {
+        html += `
+          <a class="search-hit" href="#/read/${key}?v=${q.chapter}:${q.verse}">
+            <div class="search-hit__ref">${escapeHtml(bookName)} ${q.chapter}:${q.verse}</div>
+            <p class="search-hit__text">${highlight(q.text)}</p>
+          </a>`;
+      }
+      html += `</section>`;
+    }
+    readList.innerHTML = html;
+  }
+
   function renderJumpMenu() {
-    jumpMenu.innerHTML = state.bookOrder
-      .filter(b => state.byBook[b])
-      .map(b => `
-        <button type="button" data-book="${escapeAttr(b)}">
-          <span>${escapeHtml(b)}</span>
-          <span class="book-count">${state.byBook[b].length}</span>
-        </button>
-      `).join('');
+    // Jump menu: every book in the Bible, testament-grouped.
+    if (!state.bibleCatalog.length) { jumpMenu.innerHTML = ''; return; }
+    const groups = { OT: 'Old Testament', NT: 'New Testament' };
+    let html = '';
+    for (const t of ['OT', 'NT']) {
+      const books = state.bibleCatalog.filter((b) => b.testament === t);
+      if (!books.length) continue;
+      html += `<div class="jump-group-label">${groups[t]}</div>`;
+      html += books.map((b) => {
+        const jesus = (state.byBook[b.name] || []).length;
+        return `
+          <a href="#/read/${b.key}" data-book="${escapeAttr(b.name)}">
+            <span>${escapeHtml(b.name)}</span>
+            ${jesus ? `<span class="book-count">${jesus}</span>` : ''}
+          </a>`;
+      }).join('');
+    }
+    jumpMenu.innerHTML = html;
   }
 
   jumpToggle?.addEventListener('click', (e) => {
     e.stopPropagation();
     jumpMenu.hidden = !jumpMenu.hidden;
   });
-  jumpMenu?.addEventListener('click', (e) => {
-    const btn = e.target.closest('button[data-book]');
-    if (!btn) return;
-    const book = btn.dataset.book;
-    jumpMenu.hidden = true;
-    const target = document.getElementById(`read-book-${slugBook(book)}`);
-    if (target) {
-      const y = target.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  });
+  // Since jump items are now anchors that trigger the router, we just need to
+  // close the menu on click. The hashchange listener does the rest.
+  jumpMenu?.addEventListener('click', () => { jumpMenu.hidden = true; });
   document.addEventListener('click', () => { if (jumpMenu) jumpMenu.hidden = true; });
 
   readSearch?.addEventListener('input', () => {
     readSearchTerm = readSearch.value.trim().toLowerCase();
-    applyReadFilter();
+    renderRead();
   });
-
-  function applyReadFilter() {
-    if (!readRendered) return;
-    const term = readSearchTerm;
-    const verses = readList.querySelectorAll('.verse');
-    let matchCount = 0;
-    verses.forEach(v => {
-      const match = !term || v.dataset.text.includes(term);
-      v.style.display = match ? '' : 'none';
-      if (match) matchCount++;
-    });
-    // Hide book/chapter dividers with no visible verses
-    const books = readList.querySelectorAll('.book-divider');
-    books.forEach(b => {
-      // Look ahead to next book-divider; count visible verses in between
-      let el = b.nextElementSibling;
-      let visible = 0;
-      while (el && !el.classList.contains('book-divider')) {
-        if (el.classList.contains('verse') && el.style.display !== 'none') visible++;
-        el = el.nextElementSibling;
-      }
-      b.style.display = visible ? '' : 'none';
-    });
-    const chapters = readList.querySelectorAll('.chapter-divider');
-    chapters.forEach(c => {
-      let el = c.nextElementSibling;
-      let visible = 0;
-      while (el && !el.classList.contains('chapter-divider') && !el.classList.contains('book-divider')) {
-        if (el.classList.contains('verse') && el.style.display !== 'none') visible++;
-        el = el.nextElementSibling;
-      }
-      c.style.display = visible ? '' : 'none';
-    });
-
-    readEmpty.hidden = matchCount > 0 || !term;
-  }
 
   // ============================== BOOKS ================================
 
   const booksGrid = $('#books-grid');
 
   function renderBooks() {
-    if (!state.quotes.length) {
-      booksGrid.innerHTML = '<p style="padding:2rem 0;color:var(--ink-muted);text-align:center">Loading…</p>';
+    if (!state.bibleCatalog.length) {
+      booksGrid.innerHTML = '<p class="book-loading">Loading the Bible…</p>';
       return;
     }
-    booksGrid.innerHTML = state.bookOrder.map((b) => {
-      const verses = state.byBook[b] || [];
-      const meta = state.bookMeta[b];
-      const chapterSet = new Set(verses.map(v => v.chapter));
-      const chapters = chapterSet.size;
-      const words = verses.reduce((sum, v) => sum + (v.text || '').split(/\s+/).length, 0);
+    const ot = state.bibleCatalog.filter((b) => b.testament === 'OT');
+    const nt = state.bibleCatalog.filter((b) => b.testament === 'NT');
+
+    const renderCard = (b) => {
+      const verses = state.byBook[b.name] || [];
+      const isJesus = verses.length > 0;
+      const lede = state.bookLedes[b.name];
+      const stats = isJesus
+        ? `<span class="book-card__count">${verses.length.toLocaleString()}</span> verses Jesus spoke · ${b.chapters} chapters`
+        : `${b.chapters} ${b.chapters === 1 ? 'chapter' : 'chapters'} · ${b.verses.toLocaleString()} verses`;
       return `
-        <a href="#/read/${slugBook(b)}" class="book-card">
-          <div class="book-card__number">Book ${meta?.number || ''}</div>
-          <h3 class="book-card__name">${escapeHtml(b)}</h3>
-          <div class="book-card__meta">
-            <span class="book-card__count">${verses.length.toLocaleString()}</span> verses ·
-            ${chapters} ${chapters === 1 ? 'chapter' : 'chapters'} ·
-            <span class="book-card__count">${words.toLocaleString()}</span> words
+        <a href="#/read/${b.key}" class="book-card${isJesus ? ' book-card--jesus' : ''}" data-testid="card-book-${b.key}">
+          <div class="book-card__row">
+            <h3 class="book-card__name">${escapeHtml(b.name)}</h3>
+            ${isJesus ? '<span class="book-card__mark" aria-label="Contains words of Jesus">•</span>' : ''}
           </div>
-        </a>
-      `;
-    }).join('');
+          ${lede ? `<p class="book-card__lede">${escapeHtml(lede)}</p>` : ''}
+          <div class="book-card__meta">${stats}</div>
+        </a>`;
+    };
+
+    booksGrid.innerHTML = `
+      <section class="books-testament">
+        <header class="books-testament__header">
+          <div class="books-testament__eyebrow">Old Testament</div>
+          <div class="books-testament__count">${ot.length} books</div>
+        </header>
+        <div class="books-testament__grid">${ot.map(renderCard).join('')}</div>
+      </section>
+      <section class="books-testament">
+        <header class="books-testament__header">
+          <div class="books-testament__eyebrow">New Testament</div>
+          <div class="books-testament__count">${nt.length} books · <span class="books-testament__jesus-note">six contain his words</span></div>
+        </header>
+        <div class="books-testament__grid">${nt.map(renderCard).join('')}</div>
+      </section>`;
   }
 
   // ============================ SINGLE BOOK ===========================
@@ -1163,10 +1217,13 @@
   }
 
   async function renderBook(bookName, targetVerse) {
-    const meta = state.bookMeta[bookName] || {};
-    $('#book-eyebrow').textContent = `Book ${(meta.number || '').toUpperCase()}`;
+    const meta = bookMetaFor(bookName);
+    const lede = state.bookLedes[bookName] || '';
+    $('#book-eyebrow').textContent = meta
+      ? (meta.testament === 'OT' ? 'Old Testament' : 'New Testament')
+      : '';
     $('#book-title').textContent = bookName;
-    $('#book-lede').textContent = meta.lede || '';
+    $('#book-lede').textContent = lede;
     updateReturnPill();
 
     const list = $('#book-list');
@@ -1229,10 +1286,27 @@
 
   // ============================== Init ================================
 
+  async function loadCatalog() {
+    try {
+      const res = await fetch('./bible/index.json');
+      const data = await res.json();
+      state.bibleCatalog = data.books || [];
+      state.bookByKey = {};
+      state.bookByName = {};
+      for (const b of state.bibleCatalog) {
+        state.bookByKey[b.key] = b;
+        state.bookByName[b.name] = b;
+      }
+    } catch (err) {
+      console.error('Failed to load Bible catalog', err);
+    }
+  }
+
   initTheme();
-  // Route immediately for the home view; other views wait on quotes.
+  // Route immediately for the home view; other views wait on data.
   route();
-  loadQuotes().then(() => {
+  // Kick off both loads in parallel; re-render when either finishes.
+  Promise.all([loadCatalog(), loadQuotes()]).then(() => {
     // If we're on a data-dependent view, re-render now that data is loaded.
     if (state.view === 'read' || state.view === 'books' || state.view === 'book') {
       route();

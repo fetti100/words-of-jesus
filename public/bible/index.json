@@ -2,38 +2,530 @@
   "translation": "WEB",
   "books": [
     {
-      "slug": "matthew",
+      "key": "genesis",
+      "name": "Genesis",
+      "testament": "OT",
+      "order": 1,
+      "chapters": 50,
+      "verses": 1533
+    },
+    {
+      "key": "exodus",
+      "name": "Exodus",
+      "testament": "OT",
+      "order": 2,
+      "chapters": 40,
+      "verses": 1213
+    },
+    {
+      "key": "leviticus",
+      "name": "Leviticus",
+      "testament": "OT",
+      "order": 3,
+      "chapters": 27,
+      "verses": 859
+    },
+    {
+      "key": "numbers",
+      "name": "Numbers",
+      "testament": "OT",
+      "order": 4,
+      "chapters": 36,
+      "verses": 1288
+    },
+    {
+      "key": "deuteronomy",
+      "name": "Deuteronomy",
+      "testament": "OT",
+      "order": 5,
+      "chapters": 34,
+      "verses": 959
+    },
+    {
+      "key": "joshua",
+      "name": "Joshua",
+      "testament": "OT",
+      "order": 6,
+      "chapters": 24,
+      "verses": 658
+    },
+    {
+      "key": "judges",
+      "name": "Judges",
+      "testament": "OT",
+      "order": 7,
+      "chapters": 21,
+      "verses": 618
+    },
+    {
+      "key": "ruth",
+      "name": "Ruth",
+      "testament": "OT",
+      "order": 8,
+      "chapters": 4,
+      "verses": 85
+    },
+    {
+      "key": "1-samuel",
+      "name": "1 Samuel",
+      "testament": "OT",
+      "order": 9,
+      "chapters": 31,
+      "verses": 810
+    },
+    {
+      "key": "2-samuel",
+      "name": "2 Samuel",
+      "testament": "OT",
+      "order": 10,
+      "chapters": 24,
+      "verses": 695
+    },
+    {
+      "key": "1-kings",
+      "name": "1 Kings",
+      "testament": "OT",
+      "order": 11,
+      "chapters": 22,
+      "verses": 816
+    },
+    {
+      "key": "2-kings",
+      "name": "2 Kings",
+      "testament": "OT",
+      "order": 12,
+      "chapters": 25,
+      "verses": 719
+    },
+    {
+      "key": "1-chronicles",
+      "name": "1 Chronicles",
+      "testament": "OT",
+      "order": 13,
+      "chapters": 29,
+      "verses": 942
+    },
+    {
+      "key": "2-chronicles",
+      "name": "2 Chronicles",
+      "testament": "OT",
+      "order": 14,
+      "chapters": 36,
+      "verses": 822
+    },
+    {
+      "key": "ezra",
+      "name": "Ezra",
+      "testament": "OT",
+      "order": 15,
+      "chapters": 10,
+      "verses": 280
+    },
+    {
+      "key": "nehemiah",
+      "name": "Nehemiah",
+      "testament": "OT",
+      "order": 16,
+      "chapters": 13,
+      "verses": 406
+    },
+    {
+      "key": "esther",
+      "name": "Esther",
+      "testament": "OT",
+      "order": 17,
+      "chapters": 10,
+      "verses": 167
+    },
+    {
+      "key": "job",
+      "name": "Job",
+      "testament": "OT",
+      "order": 18,
+      "chapters": 42,
+      "verses": 1070
+    },
+    {
+      "key": "psalms",
+      "name": "Psalms",
+      "testament": "OT",
+      "order": 19,
+      "chapters": 150,
+      "verses": 2461
+    },
+    {
+      "key": "proverbs",
+      "name": "Proverbs",
+      "testament": "OT",
+      "order": 20,
+      "chapters": 31,
+      "verses": 915
+    },
+    {
+      "key": "ecclesiastes",
+      "name": "Ecclesiastes",
+      "testament": "OT",
+      "order": 21,
+      "chapters": 12,
+      "verses": 222
+    },
+    {
+      "key": "song-of-solomon",
+      "name": "Song of Solomon",
+      "testament": "OT",
+      "order": 22,
+      "chapters": 8,
+      "verses": 117
+    },
+    {
+      "key": "isaiah",
+      "name": "Isaiah",
+      "testament": "OT",
+      "order": 23,
+      "chapters": 66,
+      "verses": 1292
+    },
+    {
+      "key": "jeremiah",
+      "name": "Jeremiah",
+      "testament": "OT",
+      "order": 24,
+      "chapters": 52,
+      "verses": 1364
+    },
+    {
+      "key": "lamentations",
+      "name": "Lamentations",
+      "testament": "OT",
+      "order": 25,
+      "chapters": 5,
+      "verses": 154
+    },
+    {
+      "key": "ezekiel",
+      "name": "Ezekiel",
+      "testament": "OT",
+      "order": 26,
+      "chapters": 48,
+      "verses": 1273
+    },
+    {
+      "key": "daniel",
+      "name": "Daniel",
+      "testament": "OT",
+      "order": 27,
+      "chapters": 12,
+      "verses": 357
+    },
+    {
+      "key": "hosea",
+      "name": "Hosea",
+      "testament": "OT",
+      "order": 28,
+      "chapters": 14,
+      "verses": 197
+    },
+    {
+      "key": "joel",
+      "name": "Joel",
+      "testament": "OT",
+      "order": 29,
+      "chapters": 3,
+      "verses": 73
+    },
+    {
+      "key": "amos",
+      "name": "Amos",
+      "testament": "OT",
+      "order": 30,
+      "chapters": 9,
+      "verses": 146
+    },
+    {
+      "key": "obadiah",
+      "name": "Obadiah",
+      "testament": "OT",
+      "order": 31,
+      "chapters": 1,
+      "verses": 21
+    },
+    {
+      "key": "jonah",
+      "name": "Jonah",
+      "testament": "OT",
+      "order": 32,
+      "chapters": 4,
+      "verses": 48
+    },
+    {
+      "key": "micah",
+      "name": "Micah",
+      "testament": "OT",
+      "order": 33,
+      "chapters": 7,
+      "verses": 105
+    },
+    {
+      "key": "nahum",
+      "name": "Nahum",
+      "testament": "OT",
+      "order": 34,
+      "chapters": 3,
+      "verses": 47
+    },
+    {
+      "key": "habakkuk",
+      "name": "Habakkuk",
+      "testament": "OT",
+      "order": 35,
+      "chapters": 3,
+      "verses": 56
+    },
+    {
+      "key": "zephaniah",
+      "name": "Zephaniah",
+      "testament": "OT",
+      "order": 36,
+      "chapters": 3,
+      "verses": 53
+    },
+    {
+      "key": "haggai",
+      "name": "Haggai",
+      "testament": "OT",
+      "order": 37,
+      "chapters": 2,
+      "verses": 38
+    },
+    {
+      "key": "zechariah",
+      "name": "Zechariah",
+      "testament": "OT",
+      "order": 38,
+      "chapters": 14,
+      "verses": 211
+    },
+    {
+      "key": "malachi",
+      "name": "Malachi",
+      "testament": "OT",
+      "order": 39,
+      "chapters": 4,
+      "verses": 55
+    },
+    {
+      "key": "matthew",
       "name": "Matthew",
+      "testament": "NT",
+      "order": 40,
       "chapters": 28,
       "verses": 1071
     },
     {
-      "slug": "mark",
+      "key": "mark",
       "name": "Mark",
+      "testament": "NT",
+      "order": 41,
       "chapters": 16,
       "verses": 678
     },
     {
-      "slug": "luke",
+      "key": "luke",
       "name": "Luke",
+      "testament": "NT",
+      "order": 42,
       "chapters": 24,
       "verses": 1151
     },
     {
-      "slug": "john",
+      "key": "john",
       "name": "John",
+      "testament": "NT",
+      "order": 43,
       "chapters": 21,
       "verses": 879
     },
     {
-      "slug": "acts",
+      "key": "acts",
       "name": "Acts",
+      "testament": "NT",
+      "order": 44,
       "chapters": 28,
       "verses": 1007
     },
     {
-      "slug": "revelation",
+      "key": "romans",
+      "name": "Romans",
+      "testament": "NT",
+      "order": 45,
+      "chapters": 16,
+      "verses": 434
+    },
+    {
+      "key": "1-corinthians",
+      "name": "1 Corinthians",
+      "testament": "NT",
+      "order": 46,
+      "chapters": 16,
+      "verses": 437
+    },
+    {
+      "key": "2-corinthians",
+      "name": "2 Corinthians",
+      "testament": "NT",
+      "order": 47,
+      "chapters": 13,
+      "verses": 257
+    },
+    {
+      "key": "galatians",
+      "name": "Galatians",
+      "testament": "NT",
+      "order": 48,
+      "chapters": 6,
+      "verses": 149
+    },
+    {
+      "key": "ephesians",
+      "name": "Ephesians",
+      "testament": "NT",
+      "order": 49,
+      "chapters": 6,
+      "verses": 155
+    },
+    {
+      "key": "philippians",
+      "name": "Philippians",
+      "testament": "NT",
+      "order": 50,
+      "chapters": 4,
+      "verses": 104
+    },
+    {
+      "key": "colossians",
+      "name": "Colossians",
+      "testament": "NT",
+      "order": 51,
+      "chapters": 4,
+      "verses": 95
+    },
+    {
+      "key": "1-thessalonians",
+      "name": "1 Thessalonians",
+      "testament": "NT",
+      "order": 52,
+      "chapters": 5,
+      "verses": 89
+    },
+    {
+      "key": "2-thessalonians",
+      "name": "2 Thessalonians",
+      "testament": "NT",
+      "order": 53,
+      "chapters": 3,
+      "verses": 47
+    },
+    {
+      "key": "1-timothy",
+      "name": "1 Timothy",
+      "testament": "NT",
+      "order": 54,
+      "chapters": 6,
+      "verses": 113
+    },
+    {
+      "key": "2-timothy",
+      "name": "2 Timothy",
+      "testament": "NT",
+      "order": 55,
+      "chapters": 4,
+      "verses": 83
+    },
+    {
+      "key": "titus",
+      "name": "Titus",
+      "testament": "NT",
+      "order": 56,
+      "chapters": 3,
+      "verses": 46
+    },
+    {
+      "key": "philemon",
+      "name": "Philemon",
+      "testament": "NT",
+      "order": 57,
+      "chapters": 1,
+      "verses": 25
+    },
+    {
+      "key": "hebrews",
+      "name": "Hebrews",
+      "testament": "NT",
+      "order": 58,
+      "chapters": 13,
+      "verses": 303
+    },
+    {
+      "key": "james",
+      "name": "James",
+      "testament": "NT",
+      "order": 59,
+      "chapters": 5,
+      "verses": 108
+    },
+    {
+      "key": "1-peter",
+      "name": "1 Peter",
+      "testament": "NT",
+      "order": 60,
+      "chapters": 5,
+      "verses": 105
+    },
+    {
+      "key": "2-peter",
+      "name": "2 Peter",
+      "testament": "NT",
+      "order": 61,
+      "chapters": 3,
+      "verses": 61
+    },
+    {
+      "key": "1-john",
+      "name": "1 John",
+      "testament": "NT",
+      "order": 62,
+      "chapters": 5,
+      "verses": 105
+    },
+    {
+      "key": "2-john",
+      "name": "2 John",
+      "testament": "NT",
+      "order": 63,
+      "chapters": 1,
+      "verses": 13
+    },
+    {
+      "key": "3-john",
+      "name": "3 John",
+      "testament": "NT",
+      "order": 64,
+      "chapters": 1,
+      "verses": 14
+    },
+    {
+      "key": "jude",
+      "name": "Jude",
+      "testament": "NT",
+      "order": 65,
+      "chapters": 1,
+      "verses": 25
+    },
+    {
+      "key": "revelation",
       "name": "Revelation",
+      "testament": "NT",
+      "order": 66,
       "chapters": 22,
       "verses": 404
     }

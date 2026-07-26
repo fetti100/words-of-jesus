@@ -963,7 +963,9 @@ a.cite:hover,
   position: absolute;
   top: calc(100% + 0.4rem);
   right: 0;
-  min-width: 12rem;
+  min-width: 14rem;
+  max-height: 60vh;
+  overflow-y: auto;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
   border-radius: 10px;
@@ -972,26 +974,181 @@ a.cite:hover,
   box-shadow: 0 20px 40px -20px rgba(0,0,0,0.4);
   animation: fadeIn 200ms var(--ease);
 }
-.read__jump-menu button {
+.read__jump-menu a {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
-  padding: 0.6rem 0.85rem;
+  padding: 0.5rem 0.85rem;
   background: transparent;
   border: 0;
   color: var(--ink-muted);
   font-family: var(--body);
   font-size: var(--step-0);
   text-align: left;
+  text-decoration: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background 150ms var(--ease), color 150ms var(--ease);
 }
-.read__jump-menu button:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); color: var(--ink); }
+.read__jump-menu a:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); color: var(--ink); }
 .read__jump-menu .book-count {
-  color: var(--ink-quiet);
+  color: var(--red);
   font-family: var(--ui);
   font-size: var(--step--2);
+  font-weight: 500;
+}
+.jump-group-label {
+  padding: 0.7rem 0.85rem 0.35rem;
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-whisper);
+}
+.jump-group-label:first-child { padding-top: 0.35rem; }
+
+/* Testament groups on the Read view */
+.testament {
+  margin: 2rem 0;
+}
+.testament__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.testament__eyebrow {
+  font-family: var(--ui);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.testament__count {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  color: var(--ink-quiet);
+  letter-spacing: 0.02em;
+}
+.testament__jesus-note { color: var(--red); }
+
+.book-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .book-tiles { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 900px) {
+  .book-tiles { grid-template-columns: repeat(4, 1fr); }
+}
+.book-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 180ms var(--ease), transform 180ms var(--ease), background 180ms var(--ease);
+}
+.book-tile:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  background: color-mix(in oklab, var(--ink) 3%, var(--bg-elevated));
+}
+.book-tile__name {
+  font-family: var(--display);
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.book-tile__meta {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  color: var(--ink-quiet);
+  letter-spacing: 0.01em;
+}
+.book-tile__badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.7rem;
+  min-width: 1.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--red) 18%, transparent);
+  color: var(--red);
+  font-family: var(--ui);
+  font-size: var(--step--3, 0.68rem);
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.book-tile--jesus .book-tile__name {
+  color: var(--red-letter);
+}
+.book-tile--jesus:hover .book-tile__name { color: var(--red); }
+
+/* Search results (Read view when a search term is active) */
+.search-summary {
+  padding: 0.75rem 0 1rem;
+  font-family: var(--ui);
+  font-size: var(--step--1);
+  color: var(--ink-quiet);
+  letter-spacing: 0.01em;
+}
+.search-book { margin: 1.25rem 0 0.5rem; }
+.search-book__header {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.search-hit {
+  display: block;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  transition: background 150ms var(--ease);
+}
+.search-hit:hover { background: color-mix(in oklab, var(--red) 4%, transparent); }
+.search-hit__ref {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  color: var(--red);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+.search-hit__text {
+  font-family: var(--display);
+  font-size: var(--step-0);
+  color: var(--ink);
+  line-height: 1.55;
+  margin: 0;
+}
+.search-hit__text mark {
+  background: color-mix(in oklab, var(--red) 20%, transparent);
+  color: var(--red-letter);
+  padding: 0 0.15em;
+  border-radius: 3px;
 }
 
 /* Verses */
@@ -1211,7 +1368,36 @@ a.cite:hover,
   margin: 0;
 }
 
-.books__grid {
+.books__grid { display: block; }
+
+.books-testament {
+  margin: 2rem 0 3rem;
+}
+.books-testament__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.books-testament__eyebrow {
+  font-family: var(--ui);
+  font-size: var(--step--1);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.books-testament__count {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  color: var(--ink-quiet);
+}
+.books-testament__jesus-note { color: var(--red); }
+
+.books-testament__grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1px;
@@ -1220,19 +1406,19 @@ a.cite:hover,
   border-bottom: 1px solid var(--border);
 }
 @media (min-width: 40rem) {
-  .books__grid { grid-template-columns: 1fr 1fr; }
+  .books-testament__grid { grid-template-columns: 1fr 1fr; }
 }
 @media (min-width: 60rem) {
-  .books__grid { grid-template-columns: 1fr 1fr 1fr; }
+  .books-testament__grid { grid-template-columns: 1fr 1fr 1fr; }
 }
 
 .book-card {
   display: block;
-  padding: 2rem 1.5rem;
+  padding: 1.25rem 1.25rem 1.35rem;
   background: var(--bg);
   color: inherit;
   text-decoration: none;
-  transition: background 300ms var(--ease), transform 300ms var(--ease);
+  transition: background 300ms var(--ease);
   position: relative;
 }
 .book-card:hover {
@@ -1240,34 +1426,47 @@ a.cite:hover,
 }
 .book-card:hover .book-card__name { color: var(--red); }
 
-.book-card__number {
-  font-family: var(--ui);
-  font-size: var(--step--2);
-  font-weight: 500;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-quiet);
-  margin-bottom: 0.75rem;
+.book-card__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 .book-card__name {
   font-family: var(--display);
-  font-size: var(--step-3);
+  font-size: var(--step-2);
   font-weight: 500;
   color: var(--ink);
-  letter-spacing: -0.01em;
-  margin: 0 0 0.75rem;
+  letter-spacing: -0.005em;
+  margin: 0;
   transition: color 200ms var(--ease);
 }
-.book-card__meta {
+.book-card--jesus .book-card__name { color: var(--red-letter); }
+.book-card__mark {
+  color: var(--red);
+  font-size: 1.4rem;
+  line-height: 1;
+  transform: translateY(2px);
+}
+.book-card__lede {
   font-family: var(--body);
   font-size: var(--step--1);
   color: var(--ink-muted);
+  line-height: 1.5;
+  margin: 0.1rem 0 0.55rem;
+}
+.book-card__meta {
+  font-family: var(--ui);
+  font-size: var(--step--2);
+  color: var(--ink-quiet);
   line-height: 1.4;
+  letter-spacing: 0.01em;
 }
 .book-card__count {
   font-family: var(--ui);
-  font-weight: 500;
-  color: var(--ink);
+  font-weight: 600;
+  color: var(--red);
 }
 
 /* ============================= Footer ================================ */
